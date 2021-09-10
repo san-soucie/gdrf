@@ -40,7 +40,10 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         pass
 
     def _get(self, x: str):
-        return pyro.param(self._pyro_get_fullname(x)).detach().cpu().numpy()
+        try:
+            return pyro.param(self._pyro_get_fullname(x)).detach().cpu().numpy()
+        except KeyError:
+            return pyro.param(x).detach().cpu().numpy()
 
     def _getitem(self, x: str):
         return pyro.param(self._pyro_get_fullname(x)).item()
@@ -59,7 +62,7 @@ class AbstractGDRF(SpatioTemporalTopicModel):
 
     @nn.pyro_method
     def topic_probs(self, xs):
-        return self.link_function(self.log_topic_probs(xs)).T
+        return self._link_function(self.log_topic_probs(xs)).T
 
     @nn.pyro_method
     def word_probs(self, xs):

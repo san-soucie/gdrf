@@ -2,6 +2,10 @@ import torch
 import pyro
 import pyro.contrib.gp
 
+from functools import wraps
+from contextlib import contextmanager
+from inspect import getfullargspec
+
 from abc import ABCMeta, abstractmethod
 
 class CategoricalModel(pyro.contrib.gp.Parameterized):
@@ -48,6 +52,30 @@ class TopicModel(CategoricalModel):
     def word_probs(self, indices: torch.Tensor) -> torch.Tensor:
         return torch.matmul(self.topic_probs(indices), self.word_topic_matrix)
 
+def scale_decorator(arg_name: str):
+    # https://stackoverflow.com/questions/37732639/python-decorator-access-argument-by-name
+    def decorator(f):
+        argspec = getfullargspec(f)
+        argument_index = argspec.args.index(arg_name)
+
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            self = args[0]
+            try:
+                value = args[argument_index]
+                with self.scale_context(value) as scaled_value:
+                    new_args = list(args)
+                    new_args[argument_index] = scaled_value
+                    return f(*new_args, **kwargs)
+            except IndexError:
+                value = kwargs[arg_name]
+                with self.scale_context(value) as scaled_value:
+                    kwargs[arg_name] = scaled_value
+                    return f(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
 class SpatioTemporalTopicModel(TopicModel):
 
     def __init__(
@@ -67,23 +95,36 @@ class SpatioTemporalTopicModel(TopicModel):
         self._upper_bounds = torch.tensor([b[1] for b in self._world])
         self._delta_bounds = self._upper_bounds - self._lower_bounds
         self._n_dims = len(world)
+        self._scaling = False
 
+    def scale(self, input: torch.Tensor) -> torch.Tensor:
+        return (input - self._lower_bounds) / self._delta_bounds
 
-    def scale(self, xs: torch.Tensor) -> torch.tensor:
-        # assert self._check_bounds(xs)
-        return (xs - self._lower_bounds) / self._delta_bounds
+    @contextmanager
+    def scale_context(self, input: torch.Tensor):
+        currently_scaling = self._scaling
+        self._scaling = True
+        try:
+            if not currently_scaling:
+                assert self._check_bounds(input)
+                yield self.scale(input)
+            else:
+                yield input
+        finally:
+            self._scaling &= currently_scaling
 
-
-
+    @property
+    def dims(self):
+        return self._n_dims
 
     def _check_dims(self, input: torch.Tensor) -> bool:
         return input.shape[-1] == self._n_dims
 
-    def _check_bounds(self, input: torch.Tensor) -> bool:
-        return self._check_dims(input) and ((input - self._lower_bounds > 0) & (input - self._upper_bounds < 0)).all()
+    def _check_bounds(self, input: torch.Tensor, epsilon: float = 1e-8) -> bool:
+        return self._check_dims(input) and ((input - self._lower_bounds > -epsilon) & (input - self._upper_bounds < epsilon)).all()
 
+    @abstractmethod
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        assert self._check_bounds(input)
-        return super().forward(self.scale(input))
+        pass
 
 

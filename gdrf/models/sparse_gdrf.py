@@ -26,7 +26,7 @@ from pyro.ops.indexing import Vindex
 import wandb
 
 from abc import ABCMeta, abstractmethod
-from .topic_model import SpatioTemporalTopicModel
+from .topic_model import SpatioTemporalTopicModel, scale_decorator
 
 from typing import Callable, Union, Optional, Any
 from .utils import validate_dirichlet_param, jittercholesky
@@ -53,9 +53,11 @@ class SparseGDRF(AbstractGDRF):
         super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
                          mean_function=mean_function, link_function=link_function, device=device, )
         self._fixed_inducing_points = fixed_inducing_points
-        self._inducing_points = inducing_points if fixed_inducing_points else nn.PyroParam(
-            self.scale(inducing_points),
-            constraint=dist.constraints.stack([dist.constraints.interval(*c) for c in world], dim=-2)
+        scaled_inducing_points = self.scale(inducing_points)
+        scaled_world = [(0., 1.) for _ in world]
+        self._inducing_points = scaled_inducing_points if fixed_inducing_points else nn.PyroParam(
+            scaled_inducing_points,
+            constraint=dist.constraints.stack([dist.constraints.interval(*c) for c in scaled_world], dim=-2)
         )
         self._word_topic_matrix_map = nn.PyroParam(
             self._dirichlet_param.to(self.device),
@@ -65,8 +67,8 @@ class SparseGDRF(AbstractGDRF):
         self._maxjitter = maxjitter
         self._whiten = whiten
         self.latent_shape = torch.Size([self._K])
-        self.M =  self._inducing_points.size(-2)
-        self.D =  self._inducing_points.size(-1)
+        self.M = self._inducing_points.size(-2)
+        self.D = self._inducing_points.size(-1)
         u_loc = torch.zeros((self.K, self.M), dtype= self._inducing_points.dtype)
         self.u_loc = torch.nn.Parameter(u_loc)
         identity = dist.util.eye_like(self._inducing_points, self.M)
@@ -92,32 +94,33 @@ class SparseGDRF(AbstractGDRF):
                 )
             )
 
+    @scale_decorator('xs')
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
         ret = {
             'perplexity': self.perplexity(xs, ws).item(),
-            'kernel variance': self._get('kernel.variance'),
-            'kernel lengthscale': self._get('kernel.lengthscale'),
-            'topic probabilities': self.topic_probs(xs).detach().cpu().numpy(),
-            'word-topic matrix': self.word_topic_matrix.detach().cpu().numpy(),
-            'word probabilities': self.word_probs(xs).detach().cpu().numpy(),
+            'kernel variance': self._get('_kernel.variance'),
+            'kernel lengthscale': self._get('_kernel.lengthscale'),
+            # 'topic probabilities': self.topic_probs(xs).detach().cpu().numpy(),
+            # 'word-topic matrix': self.word_topic_matrix.detach().cpu().numpy(),
+            # 'word probabilities': self.word_probs(xs).detach().cpu().numpy(),
         }
         if not self._fixed_inducing_points:
             ret['inducing_points'] = self._inducing_points.detach().cpu().numpy()
         return ret
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def log_topic_probs(self, xs):
         self._check_Xnew_shape(xs)
         self.set_mode("guide")
-        xs = self.scale(xs)
         posterior_kernel = self._kernel
         posterior_u_loc = self.u_loc
         posterior_u_scale_tril = self.u_scale_tril
         Luu = jittercholesky(
             posterior_kernel(torch.Tensor(self._inducing_points)).contiguous(),
             self.M,
-            self.jitter,
-            self.maxjitter
+            self._jitter,
+            self._maxjitter
         )
         f_loc, _ = gp.util.conditional(
             xs,
@@ -138,9 +141,9 @@ class SparseGDRF(AbstractGDRF):
         return self._word_topic_matrix_map
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def model(self, xs, ws):
         self.set_mode("model")
-        xs = self.scale(xs)
 
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
@@ -175,10 +178,10 @@ class SparseGDRF(AbstractGDRF):
         return w
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def guide(self, xs, ws):
         self.set_mode("guide")
         self._load_pyro_samples()
-        xs = self.scale(xs)
 
         kernel = self._kernel
         Xu = self._inducing_points
@@ -212,6 +215,7 @@ class SparseGDRF(AbstractGDRF):
         with pyro.plate("obs", device=self.device):
             z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(self.f(mu)).to_event())
 
+    @scale_decorator('Xnew')
     def forward(self, Xnew, full_cov=False):
         r"""
         Computes the mean and covariance matrix (or variance) of Gaussian Process
@@ -232,7 +236,6 @@ class SparseGDRF(AbstractGDRF):
         :rtype: tuple(torch.Tensor, torch.Tensor)
         """
         self.set_mode("guide")
-        Xnew = self.scale(Xnew)
 
         posterior_kernel = self._kernel
         posterior_u_loc = self.u_loc
@@ -259,9 +262,9 @@ class SparseGDRF(AbstractGDRF):
 
 class SparseMultinomialGDRF(SparseGDRF):
     @nn.pyro_method
+    @scale_decorator('xs')
     def model(self, xs, ws):
         self.set_mode("model")
-        xs = self.scale(xs)
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         u_scale_tril = dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
@@ -297,6 +300,7 @@ class SparseMultinomialGDRF(SparseGDRF):
 
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def guide(self, xs, ws):
         self.set_mode("guide")
         self._load_pyro_samples()

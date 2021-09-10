@@ -26,7 +26,7 @@ from pyro.ops.indexing import Vindex
 import wandb
 
 from abc import ABCMeta, abstractmethod
-from .topic_model import SpatioTemporalTopicModel
+from .topic_model import SpatioTemporalTopicModel, scale_decorator
 
 from typing import Callable, Union, Optional, Any
 from .utils import validate_dirichlet_param, jittercholesky
@@ -72,23 +72,25 @@ class GDRF(AbstractGDRF):
         self.f_scale_tril = nn.PyroParam(f_scale_tril, dist.constraints.lower_cholesky)
         self._sample_latent = True
 
+    @scale_decorator('xs')
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
         return {
             'perplexity': self.perplexity(xs, ws).item(),
-            'kernel variance': self._get('kernel.variance'),
-            'kernel lengthscale': self._get('kernel.lengthscale'),
+            'kernel variance': self._get('_kernel.variance'),
+            'kernel lengthscale': self._get('_kernel.lengthscale'),
             'topic probabilities': self.topic_probs(xs).detach().cpu().numpy(),
             'word-topic matrix': self.word_topic_matrix.detach().cpu().numpy(),
             'word probabilities': self.word_probs(xs).detach().cpu().numpy(),
         }
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def log_topic_probs(self, xs):
         self._check_Xnew_shape(xs)
         self.set_mode("guide")
         loc, _ = gp.util.conditional(
-            self.scale(xs),
-            self.scale(self.xs),
+            xs,
+            self.xs,
             self._kernel,
             self.f_loc,
             self.f_scale_tril,
@@ -121,18 +123,17 @@ class GDRF(AbstractGDRF):
             )
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def model(self, xs, ws):
         self.set_mode("model")
-        xs = self.scale(xs)
-
-        N = self.xs.size(-2)
-        Kff = self._kernel(self.xs)
+        N = xs.size(-2)
+        Kff = self._kernel(xs)
         Kff.view(-1)[:: N + 1] += self.jitter + self.noise  # add noise to diagonal
         Lff = jittercholesky(Kff, N, self.jitter, self.maxjitter)
 
-        zero_loc = self.xs.new_zeros(self.f_loc.shape)
+        zero_loc = xs.new_zeros(self.f_loc.shape)
         if self.whiten:
-            identity = dist.util.eye_like(self.xs, N)
+            identity = dist.util.eye_like(xs, N)
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
@@ -150,7 +151,7 @@ class GDRF(AbstractGDRF):
             )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(self.xs)
+        f_loc = f_loc + self.mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
@@ -164,9 +165,8 @@ class GDRF(AbstractGDRF):
         return w
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def guide(self, xs, ws):
-        xs = self.scale(xs)
-
         self.set_mode("guide")
         self._load_pyro_samples()
         pyro.sample(
@@ -185,6 +185,8 @@ class GDRF(AbstractGDRF):
         with pyro.plate("obs", device=self.device):
             z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist).to_event())
 
+    @nn.pyro_method
+    @scale_decorator('Xnew')
     def forward(self, Xnew, full_cov=False):
         r"""
         Computes the mean and covariance matrix (or variance) of Gaussian Process
@@ -208,7 +210,7 @@ class GDRF(AbstractGDRF):
         self.set_mode("guide")
 
         loc, cov = gp.util.conditional(
-            self.scale(Xnew),
+            Xnew,
             self.scale(self.xs),
             self._kernel,
             self.f_loc,
@@ -217,23 +219,23 @@ class GDRF(AbstractGDRF):
             whiten=self._whiten,
             jitter=self._jitter,
         )
-        return loc + self._mean_function(self.scale(Xnew)), cov
+        return loc + self._mean_function(Xnew), cov
 
 
 class MultinomialGDRF(GDRF):
     @nn.pyro_method
+    @scale_decorator('xs')
     def model(self, xs, ws):
         self.set_mode("model")
-        xs = self.scale(xs)
 
-        N = self.xs.size(-2)
-        Kff = self._kernel(self.xs)
+        N = xs.size(-2)
+        Kff = self._kernel(xs)
         Kff.view(-1)[:: N + 1] += self.jitter + self.noise  # add noise to diagonal
         Lff = jittercholesky(Kff, N, self.jitter, self.maxjitter)
 
-        zero_loc = self.xs.new_zeros(self.f_loc.shape)
+        zero_loc = xs.new_zeros(self.f_loc.shape)
         if self.whiten:
-            identity = dist.util.eye_like(self.xs, N)
+            identity = dist.util.eye_like(xs, N)
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
@@ -251,7 +253,7 @@ class MultinomialGDRF(GDRF):
             )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(self.xs)
+        f_loc = f_loc + self.mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
@@ -263,11 +265,10 @@ class MultinomialGDRF(GDRF):
         return w
 
     @nn.pyro_method
+    @scale_decorator('xs')
     def guide(self, xs, ws):
         self.set_mode("guide")
         self._load_pyro_samples()
-        xs = self.scale(xs)
-
         pyro.sample(
             self._pyro_get_fullname("mu"),
             dist.MultivariateNormal(self.f_loc, scale_tril=self.f_scale_tril).to_event(

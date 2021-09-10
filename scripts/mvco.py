@@ -17,40 +17,23 @@ from collections import defaultdict
 from tqdm import trange
 from gdrf.plot_mvco import make_plots, make_stackplot, make_wt_plot, read_the_csv, GROUND_TRUTH_FILE
 
-def run_mvco(K = 5,
-             l0 = 0.327,
-             sigma=0.889,
-             NXu=150,
-             beta=9.29,
+def run_mvco(num_topics = 5,
+             initial_lengthscale = 0.327,
+             initial_variance=0.889,
+             num_inducing=150,
+             dirichlet_param=9.29,
              num_steps=2000,
-             lr=np.exp(-13.046),
+             learning_rate=np.exp(-13.046),
              num_particles=10,
-             use_cuda=True,
+             device='cpu',
              seed=5,
-             prefix='mvco',
-             plot=True,
+             training_name='mvco',
+             training_project='mvco',
              jitter=1e-6,
-             maxjitter=3):
-    folder = f"{prefix}_{K}_{l0}_{sigma}_{NXu}_{beta}_{num_steps}_{lr}_{num_particles}_{seed}"
+             maxjitter=3,
+             early_stop=False):
 
-    config = {'number of topics': K,
-              'initial kernel lengthscale': l0,
-              'initial kernel variance': sigma,
-              'number of inducing points': NXu,
-              'number of epochs': num_steps,
-              'learning rate': lr,
-              'number of particles': num_particles,
-              'cuda': use_cuda,
-              'random seed': seed,
-              'output folder': folder,
-              'dataset': 'count_by_class_time_seriesCNN_hourly19Aug2021.csv'}
-
-
-
-
-
-    full_folder = os.path.join('..', 'data', folder)
-    if use_cuda:
+    if device[:4] == 'cuda':
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
     data = pd.read_csv("../data/count_by_class_time_seriesCNN_hourly19Aug2021.csv")
@@ -92,15 +75,16 @@ def run_mvco(K = 5,
         c for c in data.columns if c not in bad_cols
     ]
     data = data[good_columns]
-
-    min_t = min(data[data.columns[0]])
-    max_t = max(data[data.columns[0]])
     ts = data[data.columns[0]]
-    ws = data[data.columns[2:]].to_numpy(dtype='int')
-    ts = ts.to_numpy(dtype=np.float32)
     min_t = min(ts)
     max_t = max(ts)
-    ts = torch.Tensor(ts).unsqueeze(-1)
+    ts_norm = (ts - min_t) / (max_t - min_t)
+    ws = data[data.columns[2:]].to_numpy(dtype='int')
+    ts = ts.to_numpy(dtype=np.float32)
+    ts /= 1e18
+    min_t = min(ts)
+    max_t = max(ts)
+    xs = torch.Tensor(ts_norm).unsqueeze(-1)
     # n_ts_plot = 100
     # dt = (max_t - min_t) / (n_ts_plot - 1)
     # ts_plot_index = np.arange(min_t, max_t, step = dt)
@@ -118,36 +102,49 @@ def run_mvco(K = 5,
     pyro.get_param_store().clear()
 
     V = ws.shape[1]
-    k = kernel.RBF(1, lengthscale=torch.tensor(float(l0), device='cuda' if use_cuda else 'cpu'), variance=torch.tensor(float(sigma), device='cuda' if use_cuda else 'cpu'))
-    k.lengthscale = nn.PyroParam(torch.tensor(float(l0), device='cuda' if use_cuda else 'cpu'), constraint=dist.constraints.positive)
-    k.variance = nn.PyroParam(torch.tensor(float(sigma), device='cuda' if use_cuda else 'cpu'), constraint=dist.constraints.positive)
-    if use_cuda:
+    k = kernel.RBF(1, lengthscale=torch.tensor(float(initial_lengthscale), device=device), variance=torch.tensor(float(initial_variance), device=device))
+    k.lengthscale = nn.PyroParam(torch.tensor(float(initial_lengthscale), device=device), constraint=dist.constraints.positive)
+    k.variance = nn.PyroParam(torch.tensor(float(initial_variance), device=device), constraint=dist.constraints.positive)
+    if device[:4] == 'cuda':
         k = k.cuda()
-    bounds = [(min_t, max_t)]
-    b = torch.tensor(beta, device='cuda' if use_cuda else 'cpu')
+    bounds = [(0.0, 1.0)]
+    b = torch.tensor(dirichlet_param, device=device)
     gdrf_model = GridMultinomialGDRF(
         dirichlet_param=b,
-        num_topic_categories=K,
+        num_topic_categories=num_topics,
         num_observation_categories=V,
         kernel=k,
-        n_points=NXu,
+        n_points=num_inducing,
         world=bounds,
-        device='cuda' if use_cuda else 'cpu',
+        device=device,
         whiten=False,
         jitter=jitter,
         maxjitter=maxjitter)
-    # wandb.init(config=config)
-    # wandb.define_metric('loss', summary='min')
-    # wandb.define_metric('perplexity', summary='min')
+    config = {'number of topics': num_topics,
+              'initial kernel lengthscale': initial_lengthscale,
+              'initial kernel variance': initial_variance,
+              'number of inducing points': num_inducing,
+              'number of epochs': num_steps,
+              'learning rate': learning_rate,
+              'number of particles': num_particles,
+              'device': device,
+              'random seed': seed,
+              'dataset': 'count_by_class_time_seriesCNN_hourly19Aug2021.csv'}
+    wandb.init(project=training_project, name=training_name, config=config)
+    wandb.define_metric('loss', summary='min')
+    wandb.define_metric('perplexity', summary='min')
     losses = train_gdrf(
-        xs=ts,
+        xs=xs,
         ws=ws,
-        optimizer = optim.AdamW({"lr": lr}),
+        optimizer = optim.ClippedAdam({"lr": learning_rate, 'betas': (0.95, 0.999)}),
         objective = infer.Trace_ELBO(num_particles=num_particles,max_plate_nesting=1,vectorize_particles=True),
         gdrf=gdrf_model,
-        num_steps=3000,
-        mode = TrainingMode.OFFLINE,
-        log=False
+        num_steps=num_steps,
+        mode = TrainingMode.ONLINE,
+        log=True,
+        log_every=50,
+        plot_index=data[data.columns[0]],
+        early_stop=early_stop
     )
 
     #
@@ -172,17 +169,36 @@ def run_mvco(K = 5,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    run_mvco(K = 6,
-             l0 = 0.1,
-             sigma=0.1,
-             NXu=150,
-             beta=np.exp(-5.8692987),
-             num_steps=25000,
-             lr=0.001,
-             num_particles=1,
-             use_cuda=True,
-             seed=57575,
-             prefix='aug_24_21_mvco',
-             plot=False,
-             jitter=1e-10,
-             maxjitter=20)
+    parser.add_argument('-K', '--num-topics', default=6, type=int,
+                        help='Number of topics to use')
+    parser.add_argument('-l', '--initial-lengthscale', default=0.1, type=float,
+                        help='Initial kernel length scale')
+    parser.add_argument('-s', '--initial-variance', default=50.0, type=float,
+                        help='Initial kernel variance')
+    parser.add_argument('-i', '--num-inducing', default=500, type=int,
+                        help='Number of inducing points')
+    parser.add_argument('-b', '--dirichlet-param', default=1.e-8, type=float,
+                        help='Single-value Dirichlet hyperparameter for word-topic matrix')
+    parser.add_argument('-n', '--num-steps', default=10000, type=int,
+                        help='Number of training steps')
+    parser.add_argument('-L', '--learning-rate', default=1.e-4, type=float,
+                        help='Learning rate hyperparamater for pytorch optimizer')
+    parser.add_argument('-p', '--num-particles', default=5, type=int,
+                        help='Number of variational inference posterior samples per training step')
+    parser.add_argument('-D', '--device', default='cuda',
+                        help='Device to train on')
+    parser.add_argument('-S', '--seed', default=57575, type=int,
+                        help='Random seed')
+    parser.add_argument('-N', '--training-name', default='mvco',
+                        help='Name of training run')
+    parser.add_argument('-P', '--training-project', default='sparse_multinomial_gdrf_1000inducing',
+                        help='Name of training run')
+    parser.add_argument('-j', '--jitter', default=1e-10, type=float,
+                        help='Initial diagonal jitter to use for calculating cholesky decompositions')
+    parser.add_argument('-J', '--maxjitter', default=20, type=float,
+                        help='Maximum jitter multiplier exponent')
+    parser.add_argument('--early-stop', action='store_true',
+                        help='Stop training once convergence is reached')
+
+    args = parser.parse_args()
+    run_mvco(**vars(args))
