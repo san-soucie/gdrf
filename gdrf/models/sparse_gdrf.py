@@ -97,7 +97,7 @@ class SparseGDRF(AbstractGDRF):
     @scale_decorator('xs')
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
         ret = {
-            'perplexity': self.perplexity(xs, ws).item(),
+            # 'perplexity': self.perplexity(xs, ws).item(),
             'kernel variance': self._get('_kernel.variance'),
             'kernel lengthscale': self._get('_kernel.lengthscale'),
             # 'topic probabilities': self.topic_probs(xs).detach().cpu().numpy(),
@@ -142,7 +142,7 @@ class SparseGDRF(AbstractGDRF):
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def model(self, xs, ws):
+    def model(self, xs, ws, subsample=False):
         self.set_mode("model")
 
         Kuu = self._kernel(self._inducing_points).contiguous()
@@ -179,7 +179,7 @@ class SparseGDRF(AbstractGDRF):
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def guide(self, xs, ws):
+    def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
 
@@ -263,7 +263,7 @@ class SparseGDRF(AbstractGDRF):
 class SparseMultinomialGDRF(SparseGDRF):
     @nn.pyro_method
     @scale_decorator('xs')
-    def model(self, xs, ws):
+    def model(self, xs, ws, subsample=False):
         self.set_mode("model")
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
@@ -294,14 +294,13 @@ class SparseMultinomialGDRF(SparseGDRF):
             phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param))
         topic_probs = self._link_function(mu).transpose(-2, -1)
         probs = torch.matmul(topic_probs, phi)
-        with pyro.plate("obs", device=self.device):
-            w = pyro.sample("w", dist.Multinomial(probs=probs, validate_args=False), obs=ws)
+        with pyro.plate("obs", ws.size(-2), device=self.device, subsample_size=min(10, ws.size(-2))) as idx:
+            w = pyro.sample("w", dist.Multinomial(probs=probs[..., idx, :], validate_args=False), obs=ws[..., idx, :])
         return w
-
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def guide(self, xs, ws):
+    def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
         xs = self.scale(xs)

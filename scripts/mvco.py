@@ -12,10 +12,9 @@ import wandb
 from gdrf.models import GridMultinomialGDRF, GDRF, train_gdrf, TrainingMode
 import pyro.infer as infer
 import pyro.optim as optim
-
+import datetime
 from collections import defaultdict
 from tqdm import trange
-from gdrf.plot_mvco import make_plots, make_stackplot, make_wt_plot, read_the_csv, GROUND_TRUTH_FILE
 
 def run_mvco(num_topics = 5,
              initial_lengthscale = 0.327,
@@ -32,7 +31,8 @@ def run_mvco(num_topics = 5,
              jitter=1e-6,
              maxjitter=3,
              early_stop=False):
-
+    if training_name == '':
+        training_name = ' '.join(['mvco', datetime.datetime.now().isoformat()])
     if device[:4] == 'cuda':
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
@@ -140,9 +140,10 @@ def run_mvco(num_topics = 5,
         objective = infer.Trace_ELBO(num_particles=num_particles,max_plate_nesting=1,vectorize_particles=True),
         gdrf=gdrf_model,
         num_steps=num_steps,
-        mode = TrainingMode.ONLINE,
+        mode = TrainingMode.GIRDHAR,
         log=True,
-        log_every=50,
+        log_every=10,
+        log_every_big=100,
         plot_index=data[data.columns[0]],
         early_stop=early_stop
     )
@@ -175,12 +176,12 @@ if __name__ == "__main__":
                         help='Initial kernel length scale')
     parser.add_argument('-s', '--initial-variance', default=50.0, type=float,
                         help='Initial kernel variance')
-    parser.add_argument('-i', '--num-inducing', default=500, type=int,
+    parser.add_argument('-i', '--num-inducing', default=1000, type=int,
                         help='Number of inducing points')
     parser.add_argument('-b', '--dirichlet-param', default=1.e-8, type=float,
                         help='Single-value Dirichlet hyperparameter for word-topic matrix')
-    parser.add_argument('-n', '--num-steps', default=10000, type=int,
-                        help='Number of training steps')
+    parser.add_argument('-n', '--num-steps', default=1, type=int,
+                        help='Number of training steps, or number of steps per datapoint if online or streaming')
     parser.add_argument('-L', '--learning-rate', default=1.e-4, type=float,
                         help='Learning rate hyperparamater for pytorch optimizer')
     parser.add_argument('-p', '--num-particles', default=5, type=int,
@@ -189,7 +190,7 @@ if __name__ == "__main__":
                         help='Device to train on')
     parser.add_argument('-S', '--seed', default=57575, type=int,
                         help='Random seed')
-    parser.add_argument('-N', '--training-name', default='mvco',
+    parser.add_argument('-N', '--training-name', default='',
                         help='Name of training run')
     parser.add_argument('-P', '--training-project', default='sparse_multinomial_gdrf_1000inducing',
                         help='Name of training run')

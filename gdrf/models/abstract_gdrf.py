@@ -77,11 +77,11 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         return torch.argmax(self.word_probs(xs), dim=-2)
 
     @nn.pyro_method
-    def model(self, x, w=None):
+    def model(self, x, w=None, subsample=False):
         raise NotImplementedError
 
     @nn.pyro_method
-    def guide(self, x, w=None):
+    def guide(self, x, w=None, subsample=False):
         raise NotImplementedError
 
     @nn.pyro_method

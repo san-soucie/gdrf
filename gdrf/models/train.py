@@ -33,6 +33,7 @@ class TrainingMode(Enum):
     OFFLINE = 1
     ONLINE = 2
     STREAMING = 3
+    GIRDHAR = 4
 
 def train_gdrf(xs: torch.Tensor,
                ws: torch.Tensor,
@@ -45,7 +46,7 @@ def train_gdrf(xs: torch.Tensor,
                early_stop=True,
                log=True,
                log_every=100,
-               log_every_big=10,
+               log_every_big=100,
                plot_index: Optional[Collection] = None):
     model = gdrf.model
     guide = gdrf.guide
@@ -54,29 +55,32 @@ def train_gdrf(xs: torch.Tensor,
 
     losses = []
     log_losses = []
-    if mode is not TrainingMode.OFFLINE:
-        num_steps = xs.size(-2) # ignore num_steps for streaming/online training
-    pbar = trange(num_steps, disable=disable_pbar)
+    pbar = trange(num_steps if mode is TrainingMode.OFFLINE else xs.size(-2), disable=disable_pbar)
     for idx in pbar:
         training_xs = xs
         training_ws = ws
-        if mode is TrainingMode.ONLINE:
-            training_xs = training_xs[..., :idx, :]
-            training_ws = training_ws[..., :idx, :]
+        num_substeps = 1
+        if mode is TrainingMode.ONLINE or mode is TrainingMode.GIRDHAR:
+            training_xs = training_xs[..., :idx+1, :]
+            training_ws = training_ws[..., :idx+1, :]
+            num_substeps = num_steps
         elif mode is TrainingMode.STREAMING:
             training_xs = training_xs[..., idx, :]
             training_ws = training_ws[..., idx, :]
-        loss = svi.step(training_xs, training_ws)
+            num_substeps = num_steps
+        for _ in range(num_substeps):
+            loss = svi.step(training_xs, training_ws, subsample=mode is TrainingMode.GIRDHAR)
 
         losses.append(loss)
         if log and idx % log_every == 0:
                 artifacts = gdrf.artifacts(xs, ws, all=True)
                 artifacts['loss'] = loss
                 artifacts['epoch'] = idx
-                if idx % log_every * log_every_big == 0:
+                if idx % (log_every * log_every_big) == 0:
                     artifacts['word_topic_plot'] = wandb.Image(
                         matrix_plot(np.log10(gdrf.word_topic_matrix.detach().cpu().numpy()+1e-15), title="Log Word-topic matrix")
                     )
+                    artifacts['perplexity'] = gdrf.perplexity(xs, ws).item(),
                     if gdrf.dims == 1:
                         index = xs if plot_index is None else plot_index
                         plot_xs = xs

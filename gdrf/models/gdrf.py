@@ -124,7 +124,7 @@ class GDRF(AbstractGDRF):
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def model(self, xs, ws):
+    def model(self, xs, ws, subsample=False):
         self.set_mode("model")
         N = xs.size(-2)
         Kff = self._kernel(xs)
@@ -166,7 +166,7 @@ class GDRF(AbstractGDRF):
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def guide(self, xs, ws):
+    def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
         pyro.sample(
@@ -225,7 +225,7 @@ class GDRF(AbstractGDRF):
 class MultinomialGDRF(GDRF):
     @nn.pyro_method
     @scale_decorator('xs')
-    def model(self, xs, ws):
+    def model(self, xs, ws, subsample=False):
         self.set_mode("model")
 
         N = xs.size(-2)
@@ -266,7 +266,7 @@ class MultinomialGDRF(GDRF):
 
     @nn.pyro_method
     @scale_decorator('xs')
-    def guide(self, xs, ws):
+    def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
         pyro.sample(
