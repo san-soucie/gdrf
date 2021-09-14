@@ -1,5 +1,7 @@
 """
 General utils
+Adapted from YOLOv5, https://github.com/ultralytics/yolov5/
+
 """
 
 import contextlib
@@ -21,7 +23,8 @@ import pandas as pd
 import pkg_resources as pkg
 import torch
 import torch.backends.cudnn as cudnn
-
+import subprocess
+import datetime
 
 
 # Settings
@@ -29,6 +32,8 @@ torch.set_printoptions(linewidth=320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
 pd.options.display.max_columns = 10
 os.environ['NUMEXPR_MAX_THREADS'] = str(min(os.cpu_count(), 8))  # NumExpr max threads
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Timeout(contextlib.ContextDecorator):
@@ -349,3 +354,94 @@ def check_dataset(data, sep=','):
     assert isinstance(data, (str, Path)), f"{data} must be a string or Path object"
     with open(data, errors='ignore') as f:
         return list(csv.reader(f, sep=sep))
+
+
+def increment_path(path, exist_ok=False, sep='', mkdir=False):
+    # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
+    path = Path(path)  # os-agnostic
+    if path.exists() and not exist_ok:
+        suffix = path.suffix
+        path = path.with_suffix('')
+        dirs = glob.glob(f"{path}{sep}*")  # similar paths
+        matches = [re.search(rf"%s{sep}(\d+)" % path.stem, d) for d in dirs]
+        i = [int(m.groups()[0]) for m in matches if m]  # indices
+        n = max(i) + 1 if i else 2  # increment number
+        path = Path(f"{path}{sep}{n}{suffix}")  # update path
+    dir = path if path.suffix == '' else path.parent  # directory
+    if not dir.exists() and mkdir:
+        dir.mkdir(parents=True, exist_ok=True)  # make directory
+    return path
+
+
+def strip_optimizer(f='best.pt', s=''):  # from utils.general import *; strip_optimizer()
+    # Strip optimizer from 'f' to finalize training, optionally save as 's'
+    x = torch.load(f, map_location=torch.device('cpu'))
+    for k in 'optimizer', 'training_results', 'wandb_id', 'ema', 'updates':  # keys
+        x[k] = None
+    x['epoch'] = -1
+    x['model'].half()  # to FP16
+    for p in x['model'].parameters():
+        p.requires_grad = False
+    torch.save(x, s or f)
+    mb = os.path.getsize(s or f) / 1E6  # filesize
+    print(f"Optimizer stripped from {f},{(' saved as %s,' % s) if s else ''} {mb:.1f}MB")
+
+
+def date_modified(path=__file__):
+    # return human-readable file modification date, i.e. '2021-3-26'
+    t = datetime.datetime.fromtimestamp(Path(path).stat().st_mtime)
+    return f'{t.year}-{t.month}-{t.day}'
+
+
+def git_describe(path=Path(__file__).parent):  # path must be a directory
+    # return human-readable git description, i.e. v5.0-5-g3e25f1e https://git-scm.com/docs/git-describe
+    s = f'git -C {path} describe --tags --long --always'
+    try:
+        return subprocess.check_output(s, shell=True, stderr=subprocess.STDOUT).decode()[:-1]
+    except subprocess.CalledProcessError as e:
+        return ''  # not a git repository
+
+
+def select_device(device=''):
+    # device = 'cpu' or '0' or '0,1,2,3'
+    s = f'GDRF {git_describe() or date_modified()} torch {torch.__version__} '  # string
+    device = str(device).strip().lower().replace('cuda:', '')  # to string, 'cuda:0' to '0'
+    cpu = device == 'cpu'
+    if cpu:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # force torch.cuda.is_available() = False
+    elif device:  # non-cpu device requested
+        os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
+        assert torch.cuda.is_available(), f'CUDA unavailable, invalid device {device} requested'  # check availability
+
+    cuda = not cpu and torch.cuda.is_available()
+    if cuda:
+        devices = device.split(',') if device else '0'  # range(torch.cuda.device_count())  # i.e. 0,1,6,7
+        space = ' ' * (len(s) + 1)
+        for i, d in enumerate(devices):
+            p = torch.cuda.get_device_properties(i)
+            s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
+    else:
+        s += 'CPU\n'
+
+    LOGGER.info(s.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else s)  # emoji-safe
+    return torch.device('cuda:0' if cuda else 'cpu')
+
+
+class EarlyStopping:
+    # YOLOv5 simple early stopper
+    def __init__(self, patience=30):
+        self.best_fitness = 0.0  # i.e. mAP
+        self.best_epoch = 0
+        self.patience = patience or float('inf')  # epochs to wait after fitness stops improving to stop
+        self.possible_stop = False  # possible stop may occur next epoch
+
+    def __call__(self, epoch, fitness):
+        if fitness >= self.best_fitness:  # >= 0 to allow for early zero-fitness stage of training
+            self.best_epoch = epoch
+            self.best_fitness = fitness
+        delta = epoch - self.best_epoch  # epochs without improvement
+        self.possible_stop = delta >= (self.patience - 1)  # possible stop may occur next epoch
+        stop = delta >= self.patience  # stop training if patience exceeded
+        if stop:
+            LOGGER.info(f'EarlyStopping patience {self.patience} exceeded, stopping training.')
+        return stop

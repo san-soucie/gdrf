@@ -34,10 +34,9 @@ class Loggers():
         self.hyp = hyp
         self.logger = logger  # for printing results to console
         self.include = include
-        self.keys = ['train/box_loss', 'train/obj_loss', 'train/cls_loss',  # train loss
-                     'metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/mAP_0.5:0.95',  # metrics
-                     'val/box_loss', 'val/obj_loss', 'val/cls_loss',  # val loss
-                     'x/lr0', 'x/lr1', 'x/lr2']  # params
+        self.keys = ['train/loss',  # train loss
+                     'metrics/perplexity',   # metrics
+                     'x/kernel.lengthscale', 'x/kernel.variance']  # params
         for k in LOGGERS:
             setattr(self, k, None)  # init empty logger dictionary
         self.csv = True  # always log to csv
@@ -62,40 +61,26 @@ class Loggers():
 
     def on_pretrain_routine_end(self):
         # Callback runs on pre-train routine end
-        paths = self.save_dir.glob('*labels*.jpg')  # training labels
-        if self.wandb:
-            self.wandb.log({"Labels": [wandb.Image(str(x), caption=x.name) for x in paths]})
+        pass
 
-    def on_train_batch_end(self, ni, model, imgs, targets, paths, plots, sync_bn):
+    def on_train_batch_end(self, *args, **kwargs):
         # Callback runs on train batch end
-        if plots:
-            if ni == 0:
-                if not sync_bn:  # tb.add_graph() --sync known issue https://github.com/ultralytics/yolov5/issues/3754
-                    with warnings.catch_warnings():
-                        warnings.simplefilter('ignore')  # suppress jit trace warning
-                        self.tb.add_graph(torch.jit.trace(de_parallel(model), imgs[0:1], strict=False), [])
-            if ni < 3:
-                f = self.save_dir / f'train_batch{ni}.jpg'  # filename
-                Thread(target=plot_images, args=(imgs, targets, paths, f), daemon=True).start()
-            if self.wandb and ni == 10:
-                files = sorted(self.save_dir.glob('train*.jpg'))
-                self.wandb.log({'Mosaics': [wandb.Image(str(f), caption=f.name) for f in files if f.exists()]})
+        if self.wandb and kwargs.get('log', None) is not None:
+            self.wandb.log(kwargs['log'])
 
-    def on_train_epoch_end(self, epoch):
+    def on_train_epoch_end(self, *args, **kwargs):
         # Callback runs on train epoch end
         if self.wandb:
-            self.wandb.current_epoch = epoch + 1
+            current_epoch = kwargs.get('epoch', self.wandb.current_epoch)
+            self.wandb.current_epoch = current_epoch + 1
 
-    def on_val_image_end(self, pred, predn, path, names, im):
+    def on_val_image_end(self, *args, **kwargs):
         # Callback runs on val image end
-        if self.wandb:
-            self.wandb.val_one_image(pred, predn, path, names, im)
+        pass
 
-    def on_val_end(self):
+    def on_val_end(self, *args, **kwargs):
         # Callback runs on val end
-        if self.wandb:
-            files = sorted(self.save_dir.glob('val*.jpg'))
-            self.wandb.log({"Validation": [wandb.Image(str(f), caption=f.name) for f in files]})
+        pass
 
     def on_fit_epoch_end(self, vals, epoch, best_fitness, fi):
         # Callback runs at the end of each fit (train+val) epoch
@@ -106,10 +91,6 @@ class Loggers():
             s = '' if file.exists() else (('%20s,' * n % tuple(['epoch'] + self.keys)).rstrip(',') + '\n')  # add header
             with open(file, 'a') as f:
                 f.write(s + ('%20.5g,' * n % tuple([epoch] + vals)).rstrip(',') + '\n')
-
-        if self.tb:
-            for k, v in x.items():
-                self.tb.add_scalar(k, v, epoch)
 
         if self.wandb:
             self.wandb.log(x)
@@ -123,24 +104,17 @@ class Loggers():
 
     def on_train_end(self, last, best, plots, epoch):
         # Callback runs on training end
-        if plots:
-            plot_results(file=self.save_dir / 'results.csv')  # save results.png
-        files = ['results.png', 'confusion_matrix.png', *[f'{x}_curve.png' for x in ('F1', 'PR', 'P', 'R')]]
-        files = [(self.save_dir / f) for f in files if (self.save_dir / f).exists()]  # filter
+        # if plots:
+        #     files = plot_results(file=self.save_dir / 'results.csv')  # save results.png
+        # files = [(self.save_dir / f) for f in files if (self.save_dir / f).exists()]  # filter
 
-        if self.tb:
-            import cv2
-            for f in files:
-                self.tb.add_image(f.stem, cv2.imread(str(f))[..., ::-1], epoch, dataformats='HWC')
 
         if self.wandb:
-            self.wandb.log({"Results": [wandb.Image(str(f), caption=f.name) for f in files]})
-            # Calling wandb.log. TODO: Refactor this into WandbLogger.log_model
+            # self.wandb.log({"Results": [wandb.Image(str(f), caption=f.name) for f in files]})
             if not self.opt.evolve:
-                wandb.log_artifact(str(best if best.exists() else last), type='model',
+                self.wandb.finish_run(artifact_or_path=str(best if best.exists() else last), type='model',
                                    name='run_' + self.wandb.wandb_run.id + '_model',
                                    aliases=['latest', 'best', 'stripped'])
-                self.wandb.finish_run()
             else:
                 self.wandb.finish_run()
                 self.wandb = WandbLogger(self.opt)
