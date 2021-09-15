@@ -49,7 +49,8 @@ class SparseGDRF(AbstractGDRF):
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
-                 maxjitter: int = 5):
+                 maxjitter: int = 5,
+                 **kwargs):
         super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
                          mean_function=mean_function, link_function=link_function, device=device, )
         self._fixed_inducing_points = fixed_inducing_points
@@ -349,7 +350,8 @@ class GridGDRF(SparseGDRF):
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
-                 maxjitter: int = 5):
+                 maxjitter: int = 5,
+                 **kwargs):
         assert len(world) == len(n_points) or isinstance(n_points, int), "single int or list len(world) for n_points"
         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
@@ -386,7 +388,8 @@ class GridMultinomialGDRF(SparseMultinomialGDRF):
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
-                 maxjitter: int = 5):
+                 maxjitter: int = 5,
+                 **kwargs):
         assert isinstance(n_points, int) or len(world) == len(n_points), "single int or list len(world) for n_points"
         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]

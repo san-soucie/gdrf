@@ -48,7 +48,8 @@ class GDRF(AbstractGDRF):
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
-                 maxjitter: int = 5):
+                 maxjitter: int = 5,
+                 **kwargs):
         super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
                          mean_function=mean_function, link_function=link_function, device=device, )
         if ws is not None and ws.size(-2) != xs.size(-2):

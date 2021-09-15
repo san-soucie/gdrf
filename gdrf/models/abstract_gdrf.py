@@ -22,7 +22,8 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         dirichlet_param: Union[float, torch.Tensor],
         mean_function: Callable = lambda x: 0.0,
         link_function: Callable = lambda x: torch.softmax(x, -2),
-        device: str = 'cpu'
+        device: str = 'cpu',
+        **kwargs
     ):
         super().__init__(
             num_observation_categories=num_observation_categories,

@@ -14,7 +14,12 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+import pandas as pd
+
 import numpy as np
+import pyro.optim
+import pyro.infer
+import pyro.contrib.gp
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -22,11 +27,13 @@ import yaml
 from torch.cuda import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Adam, SGD, lr_scheduler
-from tqdm import tqdm
+from tqdm import tqdm, trange
+from tqdm.contrib.logging import logging_redirect_tqdm
 
+from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF, GridGDRF, GridMultinomialGDRF
 FILE = Path(__file__).resolve()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
-
+from typing import Union, Optional
 
 from utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, check_requirements, \
     check_file, check_yaml, check_suffix, set_logging, colorstr, methods, EarlyStopping, increment_path, select_device
@@ -39,15 +46,71 @@ LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable
 RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 
+GDRF_MODEL_DICT = {
+    'gdrf': GDRF,
+    'multinomialgdrf': MultinomialGDRF,
+    'sparsegdrf': SparseGDRF,
+    'sparsemultinomialgdrf': SparseMultinomialGDRF,
+    'gridgdrf': GridGDRF,
+    'gridmultinomialgdrf': GridMultinomialGDRF,
+}
+OPTIMIZER_DICT = {
+    'adagradrmsprop': pyro.optim.AdagradRMSProp,
+    'clippedadam': pyro.optim.ClippedAdam,
+    'dctadam': pyro.optim.DCTAdam,
+    'adadelta': pyro.optim.Adadelta,
+    'adagrad': pyro.optim.Adagrad,
+    'adam': pyro.optim.Adam,
+    'adamw': pyro.optim.AdamW,
+    'sparseadam': pyro.optim.SparseAdam,
+    'adamax': pyro.optim.Adamax,
+    'asgd': pyro.optim.ASGD,
+    'sgd': pyro.optim.SGD,
+    'rprop': pyro.optim.Rprop,
+    'rmsprop': pyro.optim.RMSprop
+}
+OBJECTIVE_DICT = {
+    'elbo': pyro.infer.Trace_ELBO,
+    'graphelbo': pyro.infer.TraceGraph_ELBO,
+    'renyielbo': pyro.infer.RenyiELBO
+}
+KERNEL_DICT = {
+    'rbf': pyro.contrib.gp.kernels.RBF,
+    'matern32': pyro.contrib.gp.kernels.Matern32,
+    'matern52': pyro.contrib.gp.kernels.Matern52,
+    'exponential': pyro.contrib.gp.kernels.Exponential,
+    'rationalquadratic': pyro.contrib.gp.kernels.RationalQuadratic,
+}
 
-def train(hyp,  # path/to/hyp.yaml or hyp dictionary
-          opt,
-          device,
-          callbacks
+def train(project: str = "GDRF",
+          name: str = 'train',
+          device: str = 'cpu',
+          exist_ok: bool = True,
+          weights: str = '',
+          data: str = '',
+          dimensions: int = 1,
+          epochs: int = 300,
+          resume: Union[str, bool] = False,
+          nosave: bool = False,
+          model_type: str = 'gdrf',
+          model_hyp: Optional[dict] = None,
+          kernel_type: str = 'rbf',
+          kernel_hyp: Optional[dict] = None,
+          optimizer_type: str = 'adam',
+          optimizer_hyp: Optional[dict] = None,
+          objective_type: str = 'elbo',
+          objective_hyp: Optional[dict] = None,
+          entity: Optional[str] = None,
+          upload_dataset: bool = False,
+          save_period: int = -1,
+          artifact_alias: str = 'latest',
+          patience: int = 100,
           ):
-    save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
-        Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
-        opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
+    opt = locals()
+    callbacks = Callbacks()
+    save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
+
+
 
     # Directories
     w = save_dir / 'weights'  # weights dir
@@ -55,8 +118,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     last, best = w / 'last.pt', w / 'best.pt'
 
     # Hyperparameters
-    if isinstance(hyp, str):
-        with open(hyp) as f:
+    if isinstance(model_hyp, str):
+        with open(model_hyp) as f:
             hyp = yaml.safe_load(f)  # load hyps dict
     LOGGER.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
 
@@ -72,36 +135,49 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     if loggers.wandb:
         data_dict = loggers.wandb.data_dict
         if resume:
-            weights, epochs, hyp = opt.weights, opt.epochs, opt.hyp
+            epochs, hyp = epochs, model_hyp
 
         # Register actions
         for k in methods(loggers):
             callbacks.register_action(k, callback=getattr(loggers, k))
 
     # Config
-    cuda = device.type != 'cpu'
+    cuda = device != 'cpu'
     init_seeds(1)
     data_dict = data_dict or check_dataset(data)  # check if None
     train_path = data_dict['train']
 
+    # Dataset
+    dataset = pd.read_csv(filepath_or_buffer=data, index_col=list(range(dimensions)), header=0, parse_dates = True, dtype=int)
+    xs = torch.from_numpy(dataset.index.values()).float().to(device)
+    ws = torch.from_numpy(dataset.values()).float().to(device)
+    min_xs = xs.min(dim=0).values.detach().cpu().numpy().tolist()
+    max_xs = xs.max(dim=0).values.detach().cpu().numpy().tolist()
+    world = list(zip(min_xs, max_xs))
+
+    # Kernel
+
+    kernel = KERNEL_DICT[kernel_type](**kernel_hyp)
+    kernel = kernel.to(device)
+
     # Model
-    model = None #TODO
+    model = GDRF_MODEL_DICT[model_type](xs=xs, ws=ws, world=world, kernel=kernel, device=device, **model_hyp)
 
-    if opt.adam:
-        optimizer = Adam(model, lr=hyp['lr0'], betas=(hyp['momentum'], 0.999))  # adjust beta1 to momentum
-    else:
-        optimizer = SGD(model, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
+    # Optimizer
+    optimizer = OPTIMIZER_DICT[optimizer_type](**optimizer_hyp)
 
+    # Variational Objective
+    objective = OBJECTIVE_DICT[objective_type](**objective_hyp)
+
+    # SVI object
+
+    svi = pyro.infer.SVI(model=model.model, guide=model.guide, optim=optimizer, loss=objective)
+
+    LOGGER.info(f"{colorstr('model:')} {type(model).__name__}")
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}")
-
+    LOGGER.info(f"{colorstr('objective:')} {type(objective).__name__}")
     # Resume
-    start_epoch, best_fitness = 0, 0.0
-
-    # Trainloader
-    train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
-                                              hyp=hyp, augment=True, cache=opt.cache, rect=opt.rect, rank=RANK,
-                                              workers=workers, image_weights=opt.image_weights, quad=opt.quad,
-                                              prefix=colorstr('train: ')) # TODO
+    start_epoch, best_fitness = 0, float('inf')
 
     callbacks.run('on_pretrain_routine_end')
 
@@ -109,59 +185,42 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
     # Start training
     t0 = time.time()
-    last_opt_step = -1
-    scaler = amp.GradScaler(enabled=cuda)
-    stopper = EarlyStopping(patience=opt.patience)
+    stopper = EarlyStopping(patience=patience)
     LOGGER.info(f"Logging results to {colorstr('bold', save_dir)}\n"
                 f'Starting training for {epochs} epochs...')
-    for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
-        model.train()
+    with logging_redirect_tqdm():
+        pbar = trange(start_epoch, epochs)
+        for epoch in pbar:  # epoch ------------------------------------------------------------------
+            model.train()
 
-        #TODO
+            loss = svi.step()
+            model.eval()
+            perplexity = model.perplexity(xs, ws).item()
 
-        callbacks.run('on_train_epoch_end', epoch=epoch)
-        final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
-        if final_epoch:  # Calculate mAP
-            results, maps, _ = do_results() # TODO
-
-            # Update best mAP
-            fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
-            if fi > best_fitness:
+            pbar.set_description(f"Epoch {epoch}")
+            pbar.set_postfix(loss=loss, perplexity=perplexity)
+            callbacks.run('on_train_epoch_end', epoch=epoch)
+            log_vals = [loss, perplexity, model.kernel_lengthscale, model.kernel_variance]
+            fi = perplexity
+            if fi < best_fitness:
                 best_fitness = fi
-            log_vals = list(mloss) + list(results) + lr
             callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
-
-            # Save model
-            if (not nosave) or (final_epoch):  # if save
+            final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
+            if (not nosave) or final_epoch:
                 ckpt = {'epoch': epoch,
                         'best_fitness': best_fitness,
-                        'model': deepcopy((model)).half(),
-                        'optimizer': optimizer.state_dict(),
+                        'model': deepcopy(model).half(),
+                        'optimizer': optimizer.get_state(),
                         'wandb_id': loggers.wandb.wandb_run.id if loggers.wandb else None}
-
-                # Save last, best and delete
                 torch.save(ckpt, last)
                 if best_fitness == fi:
                     torch.save(ckpt, best)
                 del ckpt
                 callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
-
-            # Stop Single-GPU
-            if RANK == -1 and stopper(epoch=epoch, fitness=fi):
+            if stopper(epoch=epoch, fitness=fi):
                 break
 
-            # Stop DDP TODO: known issues shttps://github.com/ultralytics/yolov5/pull/4576
-            # stop = stopper(epoch=epoch, fitness=fi)
-            # if RANK == 0:
-            #    dist.broadcast_object_list([stop], 0)  # broadcast 'stop' to all ranks
-
-        # Stop DPP
-        # with torch_distributed_zero_first(RANK):
-        # if stop:
-        #    break  # must break all DDP ranks
-
-        # end epoch ----------------------------------------------------------------------------------------------------
-    # end training -----------------------------------------------------------------------------------------------------
+            # end epoch ---------------------------------------------------------------------------------------
     LOGGER.info(f'\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours.')
     for f in last, best:
         if f.exists():
@@ -170,7 +229,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
     LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
     torch.cuda.empty_cache()
-    return results
+    return None
 
 
 def parse_opt(known=False):
