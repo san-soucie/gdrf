@@ -5,8 +5,6 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 
-from typing import Union
-
 def png_bytes_to_numpy(png):
     """Convert png bytes to numpy array
 

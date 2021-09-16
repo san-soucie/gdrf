@@ -1,35 +1,20 @@
-import matplotlib
-
-from collections import defaultdict
-
 import torch
 import pyro
-import pyro.optim as optim
 import pyro.nn as nn
 
-import pyro.nn.module as module
-import pyro.contrib.gp as gp
+
 import pyro.distributions as dist
-import pyro.infer as infer
-import pyro.infer.autoguide as autoguide
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.colors as colors
-import matplotlib.cbook as cbook
-from tqdm import trange
+
 import pyro.contrib.gp as gp
-import sys
-import numpy as np
+
 
 from pyro.ops.indexing import Vindex
 
-import wandb
 
-from abc import ABCMeta, abstractmethod
-from .topic_model import SpatioTemporalTopicModel, scale_decorator
+from .topic_model import scale_decorator
 
-from typing import Callable, Union, Optional, Any
-from .utils import validate_dirichlet_param, jittercholesky
+from typing import Callable, Union, Optional
+from .utils import jittercholesky
 from .abstract_gdrf import AbstractGDRF
 
 
@@ -43,8 +28,8 @@ class GDRF(AbstractGDRF):
                  dirichlet_param: Union[float, torch.Tensor],
                  xs: torch.Tensor,
                  ws: Optional[torch.Tensor] = None,
-                 mean_function: Callable = lambda x: 0.0,
-                 link_function: Callable = lambda x: torch.softmax(x, -2),
+                 mean_function: Callable = None,
+                 link_function: Callable = None,
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
@@ -160,8 +145,8 @@ class GDRF(AbstractGDRF):
         topic_dist = dist.Categorical(f_res)
         phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param).to_event(zero_loc.dim()-1))
 
-        with pyro.plate("obs", device=self.device):
-            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist).to_event())
+        with pyro.plate("obs", ws.size(-2), device=self.device):
+            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist))
             w = pyro.sample(self._pyro_get_fullname("w"), dist.Categorical(probs=Vindex(phi)[..., z, :]), obs=ws)
         return w
 
@@ -183,8 +168,8 @@ class GDRF(AbstractGDRF):
         topic_dist = dist.Categorical(f_res)
         phi = pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
 
-        with pyro.plate("obs", device=self.device):
-            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist).to_event())
+        with pyro.plate("obs", ws.size(-2), device=self.device):
+            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist))
 
     @nn.pyro_method
     @scale_decorator('Xnew')

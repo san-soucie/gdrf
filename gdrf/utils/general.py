@@ -352,8 +352,7 @@ def download(url, dir='.', unzip=True, delete=True, curl=False, threads=1):
 def check_dataset(data, sep=','):
 
     assert isinstance(data, (str, Path)), f"{data} must be a string or Path object"
-    with open(data, errors='ignore') as f:
-        return list(csv.reader(f, sep=sep))
+    return {'train': data}
 
 
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
@@ -429,8 +428,8 @@ def select_device(device=''):
 
 class EarlyStopping:
     # YOLOv5 simple early stopper
-    def __init__(self, patience=30):
-        self.best_fitness = 0.0  # i.e. mAP
+    def __init__(self, best_fitness=0.0, patience=30):
+        self.best_fitness = best_fitness # i.e. mAP
         self.best_epoch = 0
         self.patience = patience or float('inf')  # epochs to wait after fitness stops improving to stop
         self.possible_stop = False  # possible stop may occur next epoch

@@ -1,20 +1,16 @@
 import pandas as pd
 import argparse
-import matplotlib.pyplot as plt
 import torch
 import pyro
 import pyro.nn as nn
 import pyro.contrib.gp.kernels as kernel
 import pyro.distributions as dist
-import os
 import numpy as np
 import wandb
-from gdrf.models import GridMultinomialGDRF, GDRF, train_gdrf, TrainingMode
+from gdrf.models import GridMultinomialGDRF, train_gdrf, TrainingMode
 import pyro.infer as infer
 import pyro.optim as optim
 import datetime
-from collections import defaultdict
-from tqdm import trange
 
 def run_mvco(num_topics = 5,
              initial_lengthscale = 0.327,
