@@ -1,27 +1,14 @@
-import matplotlib
 
-from collections import defaultdict
 from enum import Enum
 from typing import Optional, Collection
 
 import pandas as pd
 import torch
-import pyro
 import pyro.optim as optim
-import pyro.nn as nn
 
-import pyro.nn.module as module
-import pyro.contrib.gp as gp
-import pyro.distributions as dist
 import pyro.infer as infer
-import pyro.infer.autoguide as autoguide
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.colors as colors
-import matplotlib.cbook as cbook
+
 from tqdm import trange
-import pyro.contrib.gp.kernels as kernel
-import sys
 import numpy as np
 
 from .gdrf import AbstractGDRF

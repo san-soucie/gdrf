@@ -12,6 +12,8 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+import dill as pickle
+
 import pandas as pd
 
 import pyro.optim
@@ -26,12 +28,12 @@ from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF
 
 from typing import Union
 
-from utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, \
-    check_requirements, check_file, check_yaml, set_logging, colorstr, methods, EarlyStopping, increment_path, \
+from gdrf.utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, \
+    check_requirements, check_file, set_logging, colorstr, methods, EarlyStopping, increment_path, \
     select_device
-from utils.wandblogger import check_wandb_resume
-from utils.loggers import Loggers
-from utils.callbacks import Callbacks
+from gdrf.utils.wandblogger import check_wandb_resume
+from gdrf.utils.loggers import Loggers
+from gdrf.utils.callbacks import Callbacks
 
 FILE = Path(__file__).resolve()
 sys.path.append(FILE.parents[0].as_posix())
@@ -75,23 +77,23 @@ KERNEL_DICT = {
 }
 
 
-def train(cfg: Union[str, dict] = 'cfg.yaml',
-          project: str = "GDRF",
+def train(cfg: Union[str, dict] = 'data/cfg.yaml',
+          project: str = "wandb/gdrf",
           name: str = 'train',
-          device: str = 'cpu',
+          device: str = 'cuda:0',
           exist_ok: bool = True,
           weights: str = '',
-          data: str = '',
+          data: str = 'data/data.csv',
           dimensions: int = 1,
-          epochs: int = 300,
-          resume: Union[str, bool] = False,
+          epochs: int = 3000,
+          resume: Union[str, bool] = True,
           nosave: bool = False,
           entity: str = None,
           upload_dataset: bool = False,
           save_period: int = -1,
           artifact_alias: str = 'latest',
           patience: int = 100,
-          verbose: bool = False
+          verbose: bool = True
           ):
     """
     Trains a GDRF
@@ -119,9 +121,27 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
     save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
 
     set_logging(verbose=verbose)
-    print(colorstr('train: ') + ', '.join(f'{k}={v}' for k, v in vars(opt).items()))
+    print(colorstr('train: ') + ', '.join(f'{k}={v}' for k, v in opt.items()))
     check_git_status()
     check_requirements(requirements=FILE.parent / 'requirements.txt', exclude=[])
+
+
+    # Resume
+    if resume and not check_wandb_resume(resume):  # resume an interrupted run
+        ckpt = resume if isinstance(resume, str) else get_latest_run()  # specified or most recent path
+        assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
+        with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
+            assert os.path.isfile(Path(ckpt).parent.parent / 'opt.yaml')
+            opt = yaml.safe_load(f)  # replace
+        with open(Path(ckpt).parent.parent / 'cfg.yaml') as f:
+            assert os.path.isfile(Path(ckpt).parent.parent / 'cfg.yaml')
+            cfg = yaml.safe_load(f)  # replace
+        opt['cfg'], opt['weights'], opt['resume'] = cfg, ckpt, True
+        weights = ckpt
+        resume = True
+        LOGGER.info(f'Resuming training from {ckpt}')
+    else:
+        data = check_file(data)
 
     if isinstance(cfg, str):
         with open(cfg) as f:
@@ -134,17 +154,6 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
     optimizer_hyp = cfg['optimizer']['hyperparameters']
     objective_type = cfg['objective']['type']
     objective_hyp = cfg['objective']['hyperparameters']
-    # Resume
-    if resume and not check_wandb_resume(resume):  # resume an interrupted run
-        ckpt = resume if isinstance(resume, str) else get_latest_run()  # specified or most recent path
-        assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
-        with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
-            opt = argparse.Namespace(**yaml.safe_load(f))  # replace
-        opt.cfg, opt.weights, opt.resume = '', ckpt, True  # reinstate
-        LOGGER.info(f'Resuming training from {ckpt}')
-    else:
-        data = check_file(data)
-
     device = select_device(device)
 
     # Directories
@@ -159,7 +168,7 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
     with open(save_dir / 'cfg.yaml', 'w') as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
     with open(save_dir / 'opt.yaml', 'w') as f:
-        yaml.safe_dump(vars(opt), f, sort_keys=False)
+        yaml.safe_dump(opt, f, sort_keys=False)
     data_dict = None
 
     # Loggers
@@ -185,27 +194,43 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
         index_col=list(range(dimensions)),
         header=0,
         parse_dates=True,
-        dtype=int
-    )
-    xs = torch.from_numpy(dataset.index.values()).float().to(device)
-    ws = torch.from_numpy(dataset.values()).float().to(device)
+    ).fillna(0).astype(int)
+    index = dataset.index.values
+    index = index - index.min()
+    index = index / index.max()
+    xs = torch.from_numpy(index).float().to(device)
+    if dimensions == 1:
+        xs = xs.unsqueeze(-1)
+    ws = torch.from_numpy(dataset.values).int().to(device)
     min_xs = xs.min(dim=0).values.detach().cpu().numpy().tolist()
     max_xs = xs.max(dim=0).values.detach().cpu().numpy().tolist()
     world = list(zip(min_xs, max_xs))
+    num_observation_categories = len(dataset.columns)
+
 
     # Kernel
-
-    kernel = KERNEL_DICT[kernel_type](**kernel_hyp)
+    for k, v in kernel_hyp.items():
+        if isinstance(v, float):
+            kernel_hyp[k] = torch.tensor(v).to(device)
+    kernel = KERNEL_DICT[kernel_type](input_dim = dimensions, **kernel_hyp)
     kernel = kernel.to(device)
 
     # Model
-    model = GDRF_MODEL_DICT[model_type](xs=xs, ws=ws, world=world, kernel=kernel, device=device, **model_hyp)
+    model = GDRF_MODEL_DICT[model_type](
+        xs=xs,
+        ws=ws,
+        world=world,
+        kernel=kernel,
+        num_observation_categories=num_observation_categories,
+        device=device,
+        **model_hyp
+    )
 
     # Optimizer
-    optimizer = OPTIMIZER_DICT[optimizer_type](**optimizer_hyp)
+    optimizer = OPTIMIZER_DICT[optimizer_type](optim_args=optimizer_hyp)
 
     # Variational Objective
-    objective = OBJECTIVE_DICT[objective_type](**objective_hyp)
+    objective = OBJECTIVE_DICT[objective_type](vectorize_particles=True, **objective_hyp)
 
     # SVI object
 
@@ -215,7 +240,7 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}")
     LOGGER.info(f"{colorstr('objective:')} {type(objective).__name__}")
     # Resume
-    start_epoch, best_fitness = 0, float('inf')
+    start_epoch, best_fitness = 0, float('-inf')
 
     callbacks.run('on_pretrain_routine_end')
 
@@ -223,7 +248,7 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
 
     # Start training
     t0 = time.time()
-    stopper = EarlyStopping(patience=patience)
+    stopper = EarlyStopping(best_fitness=best_fitness, patience=patience)
     LOGGER.info(f"Logging results to {colorstr('bold', save_dir)}\n"
                 f'Starting training for {epochs} epochs...')
     with logging_redirect_tqdm():
@@ -231,7 +256,7 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
         for epoch in pbar:  # epoch ------------------------------------------------------------------
             model.train()
 
-            loss = svi.step()
+            loss = svi.step(xs, ws, subsample=False)
             model.eval()
             perplexity = model.perplexity(xs, ws).item()
 
@@ -239,8 +264,8 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
             pbar.set_postfix(loss=loss, perplexity=perplexity)
             callbacks.run('on_train_epoch_end', epoch=epoch)
             log_vals = [loss, perplexity, model.kernel_lengthscale, model.kernel_variance]
-            fi = perplexity
-            if fi < best_fitness:
+            fi = -perplexity
+            if fi > best_fitness:
                 best_fitness = fi
             callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
@@ -268,3 +293,6 @@ def train(cfg: Union[str, dict] = 'cfg.yaml',
 
     torch.cuda.empty_cache()
     return None
+
+if __name__ == "__main__":
+    train()

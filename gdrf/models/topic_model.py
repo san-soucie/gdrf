@@ -1,12 +1,11 @@
 import torch
-import pyro
 import pyro.contrib.gp
 
 from functools import wraps
 from contextlib import contextmanager
 from inspect import getfullargspec
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 class CategoricalModel(pyro.contrib.gp.Parameterized):
     def __init__(self, num_observation_categories: int, device: str = 'cpu'):
@@ -91,8 +90,8 @@ class SpatioTemporalTopicModel(TopicModel):
             device=device
         )
         self._world = world
-        self._lower_bounds = torch.tensor([b[0] for b in self._world])
-        self._upper_bounds = torch.tensor([b[1] for b in self._world])
+        self._lower_bounds = torch.tensor([b[0] for b in self._world]).to(device)
+        self._upper_bounds = torch.tensor([b[1] for b in self._world]).to(device)
         self._delta_bounds = self._upper_bounds - self._lower_bounds
         self._n_dims = len(world)
         self._scaling = False

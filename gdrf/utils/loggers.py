@@ -4,8 +4,7 @@ Logging utils
 Adapted from YOLOv5, https://github.com/ultralytics/yolov5/
 """
 
-import warnings
-from threading import Thread
+
 
 import torch
 
@@ -51,10 +50,9 @@ class Loggers():
 
         # W&B
         if wandb and 'wandb' in self.include:
-            wandb_artifact_resume = isinstance(self.opt.resume, str) and self.opt.resume.startswith('wandb-artifact://')
-            run_id = torch.load(self.weights).get('wandb_id') if self.opt.resume and not wandb_artifact_resume else None
-            self.opt.hyp = self.hyp  # add hyperparameters
-            self.wandb = WandbLogger(self.opt, run_id)
+            wandb_artifact_resume = isinstance(self.opt['resume'], str) and self.opt.resume.startswith('wandb-artifact://')
+            run_id = torch.load(self.weights).get('wandb_id') if self.opt['resume'] and not wandb_artifact_resume else None
+            self.wandb = WandbLogger({'hyp': self.hyp, **self.opt}, run_id)
         else:
             self.wandb = None
 
@@ -98,7 +96,7 @@ class Loggers():
     def on_model_save(self, last, epoch, final_epoch, best_fitness, fi):
         # Callback runs on model save event
         if self.wandb:
-            if ((epoch + 1) % self.opt.save_period == 0 and not final_epoch) and self.opt.save_period != -1:
+            if ((epoch + 1) % self.opt['save_period'] == 0 and not final_epoch) and self.opt['save_period'] != -1:
                 self.wandb.log_model(last.parent, self.opt, epoch, fi, best_model=best_fitness == fi)
 
     def on_train_end(self, last, best, plots, epoch):
@@ -110,10 +108,7 @@ class Loggers():
 
         if self.wandb:
             # self.wandb.log({"Results": [wandb.Image(str(f), caption=f.name) for f in files]})
-            if not self.opt.evolve:
-                self.wandb.finish_run(artifact_or_path=str(best if best.exists() else last), type='model',
-                                   name='run_' + self.wandb.wandb_run.id + '_model',
-                                   aliases=['latest', 'best', 'stripped'])
-            else:
-                self.wandb.finish_run()
-                self.wandb = WandbLogger(self.opt)
+            self.wandb.finish_run(artifact_or_path=str(best if best.exists() else last), type='model',
+                               name='run_' + self.wandb.wandb_run.id + '_model',
+                               aliases=['latest', 'best', 'stripped'])
+
