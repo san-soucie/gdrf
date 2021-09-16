@@ -8,10 +8,9 @@ import warnings
 from threading import Thread
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
-from general import colorstr, emojis
-from wandblogger import WandbLogger
+from .general import colorstr, emojis
+from .wandblogger import WandbLogger
 
 LOGGERS = ('csv', 'wandb')  # text-file, Weights & Biases
 

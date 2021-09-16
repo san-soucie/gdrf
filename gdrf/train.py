@@ -6,9 +6,7 @@ Usage:
 
 import argparse
 import logging
-import math
 import os
-import random
 import sys
 import time
 from copy import deepcopy
@@ -16,35 +14,29 @@ from pathlib import Path
 
 import pandas as pd
 
-import numpy as np
 import pyro.optim
 import pyro.infer
 import pyro.contrib.gp
 import torch
-import torch.distributed as dist
-import torch.nn as nn
 import yaml
-from torch.cuda import amp
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.optim import Adam, SGD, lr_scheduler
-from tqdm import tqdm, trange
+from tqdm import trange
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF, GridGDRF, GridMultinomialGDRF
-FILE = Path(__file__).resolve()
-sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
-from typing import Union, Optional
 
-from utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, check_requirements, \
-    check_file, check_yaml, check_suffix, set_logging, colorstr, methods, EarlyStopping, increment_path, select_device
+from typing import Union
+
+from utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, \
+    check_requirements, check_file, check_yaml, set_logging, colorstr, methods, EarlyStopping, increment_path, \
+    select_device
 from utils.wandblogger import check_wandb_resume
 from utils.loggers import Loggers
 from utils.callbacks import Callbacks
 
+FILE = Path(__file__).resolve()
+sys.path.append(FILE.parents[0].as_posix())
+
 LOGGER = logging.getLogger(__name__)
-LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
-RANK = int(os.getenv('RANK', -1))
-WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 
 GDRF_MODEL_DICT = {
     'gdrf': GDRF,
@@ -82,7 +74,9 @@ KERNEL_DICT = {
     'rationalquadratic': pyro.contrib.gp.kernels.RationalQuadratic,
 }
 
-def train(project: str = "GDRF",
+
+def train(cfg: Union[str, dict] = 'cfg.yaml',
+          project: str = "GDRF",
           name: str = 'train',
           device: str = 'cpu',
           exist_ok: bool = True,
@@ -92,25 +86,66 @@ def train(project: str = "GDRF",
           epochs: int = 300,
           resume: Union[str, bool] = False,
           nosave: bool = False,
-          model_type: str = 'gdrf',
-          model_hyp: Optional[dict] = None,
-          kernel_type: str = 'rbf',
-          kernel_hyp: Optional[dict] = None,
-          optimizer_type: str = 'adam',
-          optimizer_hyp: Optional[dict] = None,
-          objective_type: str = 'elbo',
-          objective_hyp: Optional[dict] = None,
-          entity: Optional[str] = None,
+          entity: str = None,
           upload_dataset: bool = False,
           save_period: int = -1,
           artifact_alias: str = 'latest',
           patience: int = 100,
+          verbose: bool = False
           ):
+    """
+    Trains a GDRF
+
+    :param Union[str, dict] cfg: Config file or dict for training run with model and training hyperparameters
+    :param str project: Project name for training run
+    :param str name: Run name for training run
+    :param str device: Device to store tensors on during training (e.g. 'cpu' or 'cuda:0')
+    :param bool exist_ok: Existing project/name ok, do not increment
+    :param str weights: Weights.pt file, if starting from pretrained weights
+    :param str data: Data.csv file, with first row as column names and first ``dimensions`` columns as indexes
+    :param int dimensions: Number of non-stationary index dimensions (e.g. a time series is 1D, x-y data are 2D, etc.)
+    :param int epochs: Number of training epochs
+    :param Union[str, bool] resume: Resume most recent training
+    :param bool nosave: only save final checkpoint
+    :param str entity: W&B entity
+    :param bool upload_dataset: Upload dataset to W&B
+    :param int save_period: Log model after this many epochs
+    :param str artifact_alias: version of dataset artifact to be used
+    :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)
+    :param bool verbose: Verbose
+    """
     opt = locals()
     callbacks = Callbacks()
     save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
 
+    set_logging(verbose=verbose)
+    print(colorstr('train: ') + ', '.join(f'{k}={v}' for k, v in vars(opt).items()))
+    check_git_status()
+    check_requirements(requirements=FILE.parent / 'requirements.txt', exclude=[])
 
+    if isinstance(cfg, str):
+        with open(cfg) as f:
+            cfg = yaml.safe_load(f)  # load hyps dict
+    model_type = cfg['model']['type']
+    model_hyp = cfg['model']['hyperparameters']
+    kernel_type = cfg['kernel']['type']
+    kernel_hyp = cfg['kernel']['hyperparameters']
+    optimizer_type = cfg['optimizer']['type']
+    optimizer_hyp = cfg['optimizer']['hyperparameters']
+    objective_type = cfg['objective']['type']
+    objective_hyp = cfg['objective']['hyperparameters']
+    # Resume
+    if resume and not check_wandb_resume(resume):  # resume an interrupted run
+        ckpt = resume if isinstance(resume, str) else get_latest_run()  # specified or most recent path
+        assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
+        with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
+            opt = argparse.Namespace(**yaml.safe_load(f))  # replace
+        opt.cfg, opt.weights, opt.resume = '', ckpt, True  # reinstate
+        LOGGER.info(f'Resuming training from {ckpt}')
+    else:
+        data = check_file(data)
+
+    device = select_device(device)
 
     # Directories
     w = save_dir / 'weights'  # weights dir
@@ -118,20 +153,17 @@ def train(project: str = "GDRF",
     last, best = w / 'last.pt', w / 'best.pt'
 
     # Hyperparameters
-    if isinstance(model_hyp, str):
-        with open(model_hyp) as f:
-            hyp = yaml.safe_load(f)  # load hyps dict
-    LOGGER.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
+    LOGGER.info(colorstr('config: ') + ', '.join(f'{k}={v}' for k, v in cfg.items()))
 
     # Save run settings
-    with open(save_dir / 'hyp.yaml', 'w') as f:
-        yaml.safe_dump(hyp, f, sort_keys=False)
+    with open(save_dir / 'cfg.yaml', 'w') as f:
+        yaml.safe_dump(cfg, f, sort_keys=False)
     with open(save_dir / 'opt.yaml', 'w') as f:
         yaml.safe_dump(vars(opt), f, sort_keys=False)
     data_dict = None
 
     # Loggers
-    loggers = Loggers(save_dir, weights, opt, hyp, LOGGER)  # loggers instance
+    loggers = Loggers(save_dir, weights, opt, cfg, LOGGER)  # loggers instance
     if loggers.wandb:
         data_dict = loggers.wandb.data_dict
         if resume:
@@ -148,7 +180,13 @@ def train(project: str = "GDRF",
     train_path = data_dict['train']
 
     # Dataset
-    dataset = pd.read_csv(filepath_or_buffer=data, index_col=list(range(dimensions)), header=0, parse_dates = True, dtype=int)
+    dataset = pd.read_csv(
+        filepath_or_buffer=data,
+        index_col=list(range(dimensions)),
+        header=0,
+        parse_dates=True,
+        dtype=int
+    )
     xs = torch.from_numpy(dataset.index.values()).float().to(device)
     ws = torch.from_numpy(dataset.values()).float().to(device)
     min_xs = xs.min(dim=0).values.detach().cpu().numpy().tolist()
@@ -230,83 +268,3 @@ def train(project: str = "GDRF",
 
     torch.cuda.empty_cache()
     return None
-
-
-def parse_opt(known=False):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='yolov5s.pt', help='initial weights path')
-    parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
-    parser.add_argument('--data', type=str, default='data/coco128.yaml', help='dataset.yaml path')
-    parser.add_argument('--hyp', type=str, default='data/hyps/hyp.scratch.yaml', help='hyperparameters path')
-    parser.add_argument('--epochs', type=int, default=300)
-    parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
-    parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=640, help='train, val image size (pixels)')
-    parser.add_argument('--rect', action='store_true', help='rectangular training')
-    parser.add_argument('--resume', nargs='?', const=True, default=False, help='resume most recent training')
-    parser.add_argument('--nosave', action='store_true', help='only save final checkpoint')
-    parser.add_argument('--noval', action='store_true', help='only validate final epoch')
-    parser.add_argument('--noautoanchor', action='store_true', help='disable autoanchor check')
-    parser.add_argument('--bucket', type=str, default='', help='gsutil bucket')
-    parser.add_argument('--cache', type=str, nargs='?', const='ram', help='--cache images in "ram" (default) or "disk"')
-    parser.add_argument('--image-weights', action='store_true', help='use weighted image selection for training')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--multi-scale', action='store_true', help='vary img-size +/- 50%%')
-    parser.add_argument('--single-cls', action='store_true', help='train multi-class data as single-class')
-    parser.add_argument('--adam', action='store_true', help='use torch.optim.Adam() optimizer')
-    parser.add_argument('--sync-bn', action='store_true', help='use SyncBatchNorm, only available in DDP mode')
-    parser.add_argument('--workers', type=int, default=8, help='maximum number of dataloader workers')
-    parser.add_argument('--project', default='runs/train', help='save to project/name')
-    parser.add_argument('--entity', default=None, help='W&B entity')
-    parser.add_argument('--name', default='exp', help='save to project/name')
-    parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    parser.add_argument('--quad', action='store_true', help='quad dataloader')
-    parser.add_argument('--linear-lr', action='store_true', help='linear LR')
-    parser.add_argument('--label-smoothing', type=float, default=0.0, help='Label smoothing epsilon')
-    parser.add_argument('--upload_dataset', action='store_true', help='Upload dataset as W&B artifact table')
-    parser.add_argument('--bbox_interval', type=int, default=-1, help='Set bounding-box image logging interval for W&B')
-    parser.add_argument('--save_period', type=int, default=-1, help='Log model after every "save_period" epoch')
-    parser.add_argument('--artifact_alias', type=str, default="latest", help='version of dataset artifact to be used')
-    parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
-    parser.add_argument('--freeze', type=int, default=0, help='Number of layers to freeze. backbone=10, all=24')
-    parser.add_argument('--patience', type=int, default=100, help='EarlyStopping patience (epochs without improvement)')
-    opt = parser.parse_known_args()[0] if known else parser.parse_args()
-    return opt
-
-
-def main(opt, callbacks=Callbacks()):
-    # Checks
-    set_logging(verbose=opt.verbose)
-    print(colorstr('train: ') + ', '.join(f'{k}={v}' for k, v in vars(opt).items()))
-    check_git_status()
-    check_requirements(requirements=FILE.parent / 'requirements.txt', exclude=[])
-
-    # Resume
-    if opt.resume and not check_wandb_resume(opt):  # resume an interrupted run
-        ckpt = opt.resume if isinstance(opt.resume, str) else get_latest_run()  # specified or most recent path
-        assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
-        with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
-            opt = argparse.Namespace(**yaml.safe_load(f))  # replace
-        opt.cfg, opt.weights, opt.resume = '', ckpt, True  # reinstate
-        LOGGER.info(f'Resuming training from {ckpt}')
-    else:
-        opt.data, opt.cfg, opt.hyp = check_file(opt.data), check_yaml(opt.cfg), check_yaml(opt.hyp)  # check YAMLs
-        assert len(opt.cfg) or len(opt.weights), 'either --cfg or --weights must be specified'
-        opt.save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
-
-    device = select_device(opt.device)
-
-    # Train
-    train(opt.hyp, opt, device, callbacks)
-
-
-def run(**kwargs):
-    # Usage: import train; train.run(data='coco128.yaml', imgsz=320, weights='yolov5m.pt')
-    opt = parse_opt(True)
-    for k, v in kwargs.items():
-        setattr(opt, k, v)
-    main(opt)
-
-
-if __name__ == "__main__":
-    opt = parse_opt()
-    main(opt)
