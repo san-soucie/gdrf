@@ -1,7 +1,7 @@
 """Console script for gdrf."""
 
 import fire
-
+from .train import train
 
 def help_fire():
     print("gdrf")
@@ -10,7 +10,8 @@ def help_fire():
 
 
 def main():
-    fire.Fire({"help": help_fire})
+    fire.Fire({"help": help_fire,
+               "train": train})
 
 
 if __name__ == "__main__":
