@@ -42,8 +42,8 @@ def get_run_info(run_path):
 def check_wandb_dataset(data_file):
     return {'train': data_file if data_file.startswith(WANDB_ARTIFACT_PREFIX) else check_dataset(data_file)}
 
-def check_wandb_resume(opt):
-    return isinstance(opt.resume, str) and opt.resume.startswith(WANDB_ARTIFACT_PREFIX)
+def check_wandb_resume(resume):
+    return isinstance(resume, str) and resume.startswith(WANDB_ARTIFACT_PREFIX)
 
 
 class WandbLogger():

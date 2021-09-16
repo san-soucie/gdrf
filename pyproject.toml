@@ -6,7 +6,7 @@ homepage = "https://github.com/san-soucie/gdrf"
 description = "Pytorch+GPytorch implementation of GDRFs from San Soucie et al. 2020."
 authors = ["John San Soucie <jsansoucie@whoi.edu>"]
 readme = "README.md"
-license =  "MIT"
+license =  "GPL3"
 classifiers=[
     'Development Status :: 2 - Pre-Alpha',
     'Intended Audience :: Developers',
