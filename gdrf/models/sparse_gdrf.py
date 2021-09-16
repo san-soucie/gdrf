@@ -1,35 +1,19 @@
-import matplotlib
-
-from collections import defaultdict
-
 import torch
 import pyro
-import pyro.optim as optim
 import pyro.nn as nn
 
-import pyro.nn.module as module
-import pyro.contrib.gp as gp
+
 import pyro.distributions as dist
-import pyro.infer as infer
-import pyro.infer.autoguide as autoguide
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.colors as colors
-import matplotlib.cbook as cbook
-from tqdm import trange
+
 import pyro.contrib.gp as gp
-import sys
-import numpy as np
+
 
 from pyro.ops.indexing import Vindex
 
-import wandb
+from .topic_model import scale_decorator
 
-from abc import ABCMeta, abstractmethod
-from .topic_model import SpatioTemporalTopicModel, scale_decorator
-
-from typing import Callable, Union, Optional, Any
-from .utils import validate_dirichlet_param, jittercholesky
+from typing import Callable, Union, Optional
+from .utils import jittercholesky
 from .abstract_gdrf import AbstractGDRF
 
 
@@ -43,8 +27,8 @@ class SparseGDRF(AbstractGDRF):
                  dirichlet_param: Union[float, torch.Tensor],
                  inducing_points: torch.Tensor,
                  fixed_inducing_points: bool = False,
-                 mean_function: Callable = lambda x: 0.0,
-                 link_function: Callable = lambda x: torch.softmax(x, -2),
+                 mean_function: Callable = None,
+                 link_function: Callable = None,
                  noise: Optional[float] = None,
                  device: str = 'cpu',
                  whiten: bool = False,
@@ -54,7 +38,7 @@ class SparseGDRF(AbstractGDRF):
         super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
                          mean_function=mean_function, link_function=link_function, device=device, )
         self._fixed_inducing_points = fixed_inducing_points
-        scaled_inducing_points = self.scale(inducing_points)
+        scaled_inducing_points = self.scale(inducing_points.to(device))
         scaled_world = [(0., 1.) for _ in world]
         self._inducing_points = scaled_inducing_points if fixed_inducing_points else nn.PyroParam(
             scaled_inducing_points,
@@ -70,7 +54,7 @@ class SparseGDRF(AbstractGDRF):
         self.latent_shape = torch.Size([self._K])
         self.M = self._inducing_points.size(-2)
         self.D = self._inducing_points.size(-1)
-        u_loc = torch.zeros((self.K, self.M), dtype= self._inducing_points.dtype)
+        u_loc = torch.zeros((self.K, self.M), dtype= self._inducing_points.dtype).to(device)
         self.u_loc = torch.nn.Parameter(u_loc)
         identity = dist.util.eye_like(self._inducing_points, self.M)
         u_scale_tril = identity.repeat((self.K, 1, 1)).float()
@@ -118,17 +102,17 @@ class SparseGDRF(AbstractGDRF):
         posterior_u_loc = self.u_loc
         posterior_u_scale_tril = self.u_scale_tril
         Luu = jittercholesky(
-            posterior_kernel(torch.Tensor(self._inducing_points)).contiguous(),
+            posterior_kernel(self._inducing_points).contiguous(),
             self.M,
             self._jitter,
             self._maxjitter
         )
         f_loc, _ = gp.util.conditional(
             xs,
-            torch.Tensor(self._inducing_points),
+            self._inducing_points,
             posterior_kernel,
-            torch.Tensor(posterior_u_loc),
-            torch.Tensor(posterior_u_scale_tril),
+            posterior_u_loc,
+            posterior_u_scale_tril,
             Luu,
             full_cov=False,
             whiten=self._whiten,
@@ -148,7 +132,7 @@ class SparseGDRF(AbstractGDRF):
 
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
-        u_scale_tril = dist.util.eye_like(self._inducing_points, self.M) if self.whiten else Luu
+        u_scale_tril = dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
         zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
 
         f_loc, f_var = gp.util.conditional(
@@ -166,15 +150,15 @@ class SparseGDRF(AbstractGDRF):
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self._K, device=self.device) as idx:
             pyro.sample(
-                "u",
-                dist.MultivariateNormal(self._pyro_get_fullname("u"), zero_loc, scale_tril=u_scale_tril).to_event(
+                self._pyro_get_fullname("u"),
+                dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
                     zero_loc.dim() - 1
                 ),
             )
             mu = pyro.sample(self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var + self.noise).to_event(1))
             phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param))
-        with pyro.plate("obs", device=self.device):
-            z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(self.f(mu)).to_event())
+        with pyro.plate("obs", ws.size(-2), device=self.device):
+            z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(self._link_function(mu)))
             w = pyro.sample("w", dist.Categorical(probs=Vindex(phi)[..., z, :]), obs=ws)
         return w
 
@@ -189,7 +173,7 @@ class SparseGDRF(AbstractGDRF):
         u_loc = self.u_loc
         u_scale_tril = self.u_scale_tril
         Kuu = kernel(Xu).contiguous()
-        Luu = jittercholesky(Kuu, self.M, self.jitter, self.maxjitter)
+        Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         f_loc, f_var = gp.util.conditional(
             xs,
             Xu,
@@ -203,7 +187,7 @@ class SparseGDRF(AbstractGDRF):
         )
         f_loc = f_loc + self._mean_function(xs)
         phi_map = self._word_topic_matrix_map
-        with pyro.plate("topics", self.K, device='cuda' if self.gpu else 'cpu') as idx:
+        with pyro.plate("topics", self.K, device=self.device) as idx:
             pyro.sample(
                 self._pyro_get_fullname("u"),
                 dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
@@ -213,8 +197,8 @@ class SparseGDRF(AbstractGDRF):
             mu = pyro.sample(self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1))
             pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
 
-        with pyro.plate("obs", device=self.device):
-            z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(self.f(mu)).to_event())
+        with pyro.plate("obs", ws.size(-2), device=self.device):
+            z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(self._link_function(mu)))
 
     @scale_decorator('Xnew')
     def forward(self, Xnew, full_cov=False):
@@ -295,7 +279,7 @@ class SparseMultinomialGDRF(SparseGDRF):
             phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param))
         topic_probs = self._link_function(mu).transpose(-2, -1)
         probs = torch.matmul(topic_probs, phi)
-        with pyro.plate("obs", ws.size(-2), device=self.device, subsample_size=min(10, ws.size(-2))) as idx:
+        with pyro.plate("obs", ws.size(-2), device=self.device, ) as idx:
             w = pyro.sample("w", dist.Multinomial(probs=probs[..., idx, :], validate_args=False), obs=ws[..., idx, :])
         return w
 
@@ -340,22 +324,22 @@ class GridGDRF(SparseGDRF):
     def __init__(self,
                  num_observation_categories: int,
                  num_topic_categories: int,
-                 world: list[tuple[float]],
+                 world: list[tuple[float, float]],
                  kernel: gp.kernels.Kernel,
                  dirichlet_param: Union[float, torch.Tensor],
                  n_points: Union[int, list[int]],
-                 mean_function: Callable = lambda x: 0.0,
-                 link_function: Callable = lambda x: torch.softmax(x, -2),
+                 mean_function: Callable = None,
+                 link_function: Callable = None,
                  noise: Optional[float] = None,
                  device: str = 'cpu',
                  whiten: bool = False,
                  jitter: float = 1e-8,
                  maxjitter: int = 5,
                  **kwargs):
-        assert len(world) == len(n_points) or isinstance(n_points, int), "single int or list len(world) for n_points"
+        assert isinstance(n_points, int) or (len(world) == len(n_points)) , "single int or list len(world) for n_points"
         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
-        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T
+        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
         super().__init__(
             num_observation_categories=num_observation_categories,
             num_topic_categories=num_topic_categories,
@@ -382,8 +366,8 @@ class GridMultinomialGDRF(SparseMultinomialGDRF):
                  kernel: gp.kernels.Kernel,
                  dirichlet_param: Union[float, torch.Tensor],
                  n_points: Union[int, list[int]],
-                 mean_function: Callable = lambda x: 0.0,
-                 link_function: Callable = lambda x: torch.softmax(x, -2),
+                 mean_function: Callable = None,
+                 link_function: Callable = None,
                  noise: Optional[float] = None,
                  device: str = 'cpu',
                  whiten: bool = False,
@@ -393,7 +377,7 @@ class GridMultinomialGDRF(SparseMultinomialGDRF):
         assert isinstance(n_points, int) or len(world) == len(n_points), "single int or list len(world) for n_points"
         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
-        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T
+        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
         super().__init__(
             num_observation_categories=num_observation_categories,
             num_topic_categories=num_topic_categories,

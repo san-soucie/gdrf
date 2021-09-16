@@ -1,12 +1,9 @@
-from abc import ABC, abstractmethod
 import torch
 
-from pyro.distributions.util import is_identically_zero
 from pyro.infer.elbo import ELBO
 from pyro.infer.enum import get_importance_trace
-from pyro.infer.util import get_dependent_plate_dims, is_validation_enabled, torch_sum, torch_item
-from pyro.util import check_if_enumerated, warn_if_nan
-from typing import Callable, Union
+from pyro.infer.util import is_validation_enabled
+from pyro.util import check_if_enumerated
 import warnings
 from .divergence import Divergence
 from .loss import Loss

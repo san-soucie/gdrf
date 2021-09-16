@@ -6,11 +6,17 @@ import pyro.nn as nn
 
 import pyro.contrib.gp as gp
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from .topic_model import SpatioTemporalTopicModel
 
 from typing import Callable, Union, Any
 from .utils import validate_dirichlet_param
+
+def zero_mean(x):
+    return 0.0
+
+def softmax_link_function(x):
+    return torch.softmax(x, -2)
 
 class AbstractGDRF(SpatioTemporalTopicModel):
     def __init__(
@@ -20,11 +26,15 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         world: list[tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
-        mean_function: Callable = lambda x: 0.0,
-        link_function: Callable = lambda x: torch.softmax(x, -2),
+        mean_function: Callable = None,
+        link_function: Callable = None,
         device: str = 'cpu',
         **kwargs
     ):
+        if mean_function is None:
+            mean_function = zero_mean
+        if link_function is None:
+            link_function = softmax_link_function
         super().__init__(
             num_observation_categories=num_observation_categories,
             num_topic_categories=num_topic_categories,
@@ -34,6 +44,8 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         self._mean_function = mean_function
         self._kernel = kernel
         self._link_function = link_function
+        if isinstance(dirichlet_param, float):
+            dirichlet_param = torch.tensor(dirichlet_param)
         self._dirichlet_param = validate_dirichlet_param(dirichlet_param, self._K, self._V, device=self.device)
 
     @abstractmethod
@@ -51,11 +63,11 @@ class AbstractGDRF(SpatioTemporalTopicModel):
 
     @property
     def kernel_lengthscale(self):
-        return self._get('kernel.lengthscale')
+        return self._get('_kernel.lengthscale')
 
     @property
     def kernel_variance(self):
-        return self._get('kernel.variance')
+        return self._get('_kernel.variance')
 
     @nn.pyro_method
     def log_topic_probs(self, xs):
