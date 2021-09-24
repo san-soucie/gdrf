@@ -17,7 +17,7 @@ from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from subprocess import check_output
 
-import csv
+import collections
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
@@ -399,6 +399,11 @@ def git_describe(path=Path(__file__).parent):  # path must be a directory
         return subprocess.check_output(s, shell=True, stderr=subprocess.STDOUT).decode()[:-1]
     except subprocess.CalledProcessError as e:
         return ''  # not a git repository
+
+
+def intersect_dicts(da: dict, db: dict, exclude: collections.Iterable = ()) -> dict:
+    # Dictionary intersection of matching keys and shapes, omitting 'exclude' keys, using da values
+    return {k: v for k, v in da.items() if k in db and not any(x in k for x in exclude) and v.shape == db[k].shape}
 
 
 def select_device(device=''):
