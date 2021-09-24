@@ -25,8 +25,9 @@ class SparseGDRF(AbstractGDRF):
                  world: list[tuple[float, float]],
                  kernel: gp.kernels.Kernel,
                  dirichlet_param: Union[float, torch.Tensor],
-                 inducing_points: torch.Tensor,
+                 n_points: Union[int, list[int]],
                  fixed_inducing_points: bool = False,
+                 inducing_init: str = 'random',
                  mean_function: Callable = None,
                  link_function: Callable = None,
                  noise: Optional[float] = None,
@@ -37,12 +38,22 @@ class SparseGDRF(AbstractGDRF):
                  **kwargs):
         super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
                          mean_function=mean_function, link_function=link_function, device=device, )
+        self._n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
         self._fixed_inducing_points = fixed_inducing_points
+        if inducing_init == 'random':
+            points = [torch.sort(torch.rand(self._n_points[i]))[0].to(device) * self._delta_bounds[i] + self._lower_bounds[i] for i in range(self.dims)]
+        elif inducing_init == 'grid':
+            points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, self._n_points)]
+        else:
+            raise ValueError(
+                f"inducing_init argument {inducing_init} not valid. Only 'random' and 'grid' are currently supported"
+            )
+        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
         scaled_inducing_points = self.scale(inducing_points.to(device))
         scaled_world = [(0., 1.) for _ in world]
         self._inducing_points = scaled_inducing_points if fixed_inducing_points else nn.PyroParam(
             scaled_inducing_points,
-            constraint=dist.constraints.stack([dist.constraints.interval(*c) for c in scaled_world], dim=-2)
+            constraint=dist.constraints.stack([dist.constraints.interval(*c) for c in scaled_world], dim=-1)
         )
         self._word_topic_matrix_map = nn.PyroParam(
             self._dirichlet_param.to(self.device),
@@ -320,77 +331,77 @@ class SparseMultinomialGDRF(SparseGDRF):
             pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
 
 
-class GridGDRF(SparseGDRF):
-    def __init__(self,
-                 num_observation_categories: int,
-                 num_topic_categories: int,
-                 world: list[tuple[float, float]],
-                 kernel: gp.kernels.Kernel,
-                 dirichlet_param: Union[float, torch.Tensor],
-                 n_points: Union[int, list[int]],
-                 mean_function: Callable = None,
-                 link_function: Callable = None,
-                 noise: Optional[float] = None,
-                 device: str = 'cpu',
-                 whiten: bool = False,
-                 jitter: float = 1e-8,
-                 maxjitter: int = 5,
-                 **kwargs):
-        assert isinstance(n_points, int) or (len(world) == len(n_points)) , "single int or list len(world) for n_points"
-        n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
-        points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
-        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
-        super().__init__(
-            num_observation_categories=num_observation_categories,
-            num_topic_categories=num_topic_categories,
-            world=world,
-            kernel=kernel,
-            dirichlet_param=dirichlet_param,
-            inducing_points=inducing_points,
-            fixed_inducing_points=True,
-            mean_function=mean_function,
-            link_function=link_function,
-            noise=noise,
-            device=device,
-            whiten=whiten,
-            jitter=jitter,
-            maxjitter=maxjitter
-        )
-
-
-class GridMultinomialGDRF(SparseMultinomialGDRF):
-    def __init__(self,
-                 num_observation_categories: int,
-                 num_topic_categories: int,
-                 world: list[tuple[float, float]],
-                 kernel: gp.kernels.Kernel,
-                 dirichlet_param: Union[float, torch.Tensor],
-                 n_points: Union[int, list[int]],
-                 mean_function: Callable = None,
-                 link_function: Callable = None,
-                 noise: Optional[float] = None,
-                 device: str = 'cpu',
-                 whiten: bool = False,
-                 jitter: float = 1e-8,
-                 maxjitter: int = 5,
-                 **kwargs):
-        assert isinstance(n_points, int) or len(world) == len(n_points), "single int or list len(world) for n_points"
-        n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
-        points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
-        inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
-        super().__init__(
-            num_observation_categories=num_observation_categories,
-            num_topic_categories=num_topic_categories,
-            world=world,
-            kernel=kernel,
-            dirichlet_param=dirichlet_param,
-            inducing_points=inducing_points,
-            fixed_inducing_points=True,
-            mean_function=mean_function,
-            link_function=link_function,
-            noise=noise,
-            device=device,
-            whiten=whiten,
-            jitter=jitter,
-            maxjitter=maxjitter
-        )
+# class GridGDRF(SparseGDRF):
+#     def __init__(self,
+#                  num_observation_categories: int,
+#                  num_topic_categories: int,
+#                  world: list[tuple[float, float]],
+#                  kernel: gp.kernels.Kernel,
+#                  dirichlet_param: Union[float, torch.Tensor],
+#                  n_points: Union[int, list[int]],
+#                  mean_function: Callable = None,
+#                  link_function: Callable = None,
+#                  noise: Optional[float] = None,
+#                  device: str = 'cpu',
+#                  whiten: bool = False,
+#                  jitter: float = 1e-8,
+#                  maxjitter: int = 5,
+#                  **kwargs):
+#         assert isinstance(n_points, int) or (len(world) == len(n_points)) , "single int or list len(world) for n_points"
+#         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
+#         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
+#         inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
+#         super().__init__(
+#             num_observation_categories=num_observation_categories,
+#             num_topic_categories=num_topic_categories,
+#             world=world,
+#             kernel=kernel,
+#             dirichlet_param=dirichlet_param,
+#             inducing_points=inducing_points,
+#             fixed_inducing_points=True,
+#             mean_function=mean_function,
+#             link_function=link_function,
+#             noise=noise,
+#             device=device,
+#             whiten=whiten,
+#             jitter=jitter,
+#             maxjitter=maxjitter
+#         )
+#
+#
+# class GridMultinomialGDRF(SparseMultinomialGDRF):
+#     def __init__(self,
+#                  num_observation_categories: int,
+#                  num_topic_categories: int,
+#                  world: list[tuple[float, float]],
+#                  kernel: gp.kernels.Kernel,
+#                  dirichlet_param: Union[float, torch.Tensor],
+#                  n_points: Union[int, list[int]],
+#                  mean_function: Callable = None,
+#                  link_function: Callable = None,
+#                  noise: Optional[float] = None,
+#                  device: str = 'cpu',
+#                  whiten: bool = False,
+#                  jitter: float = 1e-8,
+#                  maxjitter: int = 5,
+#                  **kwargs):
+#         assert isinstance(n_points, int) or len(world) == len(n_points), "single int or list len(world) for n_points"
+#         n_points = [n_points for _ in world] if isinstance(n_points, int) else n_points
+#         points = [torch.arange(b[0], b[1] + (b[1] - b[0]) / (n - 1) - 1e-10, (b[1] - b[0]) / (n - 1)) for b, n in zip(world, n_points)]
+#         inducing_points = torch.stack([x.flatten() for x in torch.meshgrid(points)]).T.to(device)
+#         super().__init__(
+#             num_observation_categories=num_observation_categories,
+#             num_topic_categories=num_topic_categories,
+#             world=world,
+#             kernel=kernel,
+#             dirichlet_param=dirichlet_param,
+#             inducing_points=inducing_points,
+#             fixed_inducing_points=True,
+#             mean_function=mean_function,
+#             link_function=link_function,
+#             noise=noise,
+#             device=device,
+#             whiten=whiten,
+#             jitter=jitter,
+#             maxjitter=maxjitter
+#         )

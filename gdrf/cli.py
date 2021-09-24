@@ -2,16 +2,31 @@
 
 import fire
 from .train import train
+from .visualize import matrixplot_cli, stackplot_1d_cli
 
-def help_fire():
+
+def help():
     print("gdrf")
     print("=" * len("gdrf"))
     print("Pytorch+GPytorch implementation of GDRFs from San Soucie et al. 2020")
 
 
+class PlotCLI(object):
+
+    def __init__(self):
+        self.stack = stackplot_1d_cli
+        self.matrix = matrixplot_cli
+
+
+class CLI(object):
+    def __init__(self):
+        self.help = help
+        self.train = train
+        self.plot = PlotCLI()
+
+
 def main():
-    fire.Fire({"help": help_fire,
-               "train": train})
+    fire.Fire(CLI)
 
 
 if __name__ == "__main__":
