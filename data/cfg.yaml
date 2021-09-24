@@ -1,9 +1,11 @@
 model:
-    type: gridmultinomialgdrf
+    type: sparsemultinomialgdrf
     hyperparameters:
-        num_topic_categories: 4
+        num_topic_categories: 5
         dirichlet_param: 0.0001
-        n_points: 100
+        n_points: 25
+        fixed_inducing_points: False
+        inducing_init: random
         maxjitter: 15
 kernel:
     type: rbf

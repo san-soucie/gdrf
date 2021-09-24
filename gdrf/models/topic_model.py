@@ -120,7 +120,7 @@ class SpatioTemporalTopicModel(TopicModel):
         return input.shape[-1] == self._n_dims
 
     def _check_bounds(self, input: torch.Tensor, epsilon: float = 1e-8) -> bool:
-        return self._check_dims(input) and ((input - self._lower_bounds > -epsilon) & (input - self._upper_bounds < epsilon)).all()
+        return self._check_dims(input) and ((input.to(self.device) - self._lower_bounds > -epsilon) & (input.to(self.device) - self._upper_bounds < epsilon)).all()
 
     @abstractmethod
     def forward(self, input: torch.Tensor) -> torch.Tensor:
