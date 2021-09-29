@@ -1,14 +1,14 @@
-import torch
-import pyro.contrib.gp
-
-from functools import wraps
+from abc import abstractmethod
 from contextlib import contextmanager
+from functools import wraps
 from inspect import getfullargspec
 
-from abc import abstractmethod
+import pyro.contrib.gp
+import torch
+
 
 class CategoricalModel(pyro.contrib.gp.Parameterized):
-    def __init__(self, num_observation_categories: int, device: str = 'cpu'):
+    def __init__(self, num_observation_categories: int, device: str = "cpu"):
         super().__init__()
         self._V = num_observation_categories
         self.device = device
@@ -26,14 +26,17 @@ class CategoricalModel(pyro.contrib.gp.Parameterized):
         return self.word_probs(indices=input)
 
 
-
-
 class TopicModel(CategoricalModel):
-
-    def __init__(self, num_observation_categories: int, num_topic_categories: int, device: str = 'cpu'):
-        super().__init__(num_observation_categories=num_observation_categories, device=device)
+    def __init__(
+        self,
+        num_observation_categories: int,
+        num_topic_categories: int,
+        device: str = "cpu",
+    ):
+        super().__init__(
+            num_observation_categories=num_observation_categories, device=device
+        )
         self._K = num_topic_categories
-
 
     @property
     def K(self):
@@ -50,6 +53,7 @@ class TopicModel(CategoricalModel):
 
     def word_probs(self, indices: torch.Tensor) -> torch.Tensor:
         return torch.matmul(self.topic_probs(indices), self.word_topic_matrix)
+
 
 def scale_decorator(arg_name: str):
     # https://stackoverflow.com/questions/37732639/python-decorator-access-argument-by-name
@@ -73,21 +77,22 @@ def scale_decorator(arg_name: str):
                     return f(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
-class SpatioTemporalTopicModel(TopicModel):
 
+class SpatioTemporalTopicModel(TopicModel):
     def __init__(
         self,
         num_observation_categories: int,
         num_topic_categories: int,
         world: list[tuple[float, float]],
-        device: str = 'cpu'
+        device: str = "cpu",
     ):
         super().__init__(
             num_observation_categories=num_observation_categories,
             num_topic_categories=num_topic_categories,
-            device=device
+            device=device,
         )
         self._world = world
         self._lower_bounds = torch.tensor([b[0] for b in self._world]).to(device)
@@ -120,10 +125,14 @@ class SpatioTemporalTopicModel(TopicModel):
         return input.shape[-1] == self._n_dims
 
     def _check_bounds(self, input: torch.Tensor, epsilon: float = 1e-8) -> bool:
-        return self._check_dims(input) and ((input.to(self.device) - self._lower_bounds > -epsilon) & (input.to(self.device) - self._upper_bounds < epsilon)).all()
+        return (
+            self._check_dims(input)
+            and (
+                (input.to(self.device) - self._lower_bounds > -epsilon)
+                & (input.to(self.device) - self._upper_bounds < epsilon)
+            ).all()
+        )
 
     @abstractmethod
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         pass
-
-

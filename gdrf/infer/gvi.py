@@ -1,24 +1,26 @@
-import torch
+import warnings
 
+import torch
 from pyro.infer.elbo import ELBO
 from pyro.infer.enum import get_importance_trace
 from pyro.infer.util import is_validation_enabled
 from pyro.util import check_if_enumerated
-import warnings
+
 from .divergence import Divergence
 from .loss import Loss
 
 
 class GeneralizedVariationalLoss(ELBO):
-    def __init__(self,
-                 divergence: Divergence,
-                 loss_fn: Loss,
-                 num_particles=2,
-                 max_plate_nesting=float("inf"),
-                 max_iarange_nesting=None,  # DEPRECATED
-                 vectorize_particles=False,
-                 strict_enumeration_warning=True,
-                 ):
+    def __init__(
+        self,
+        divergence: Divergence,
+        loss_fn: Loss,
+        num_particles=2,
+        max_plate_nesting=float("inf"),
+        max_iarange_nesting=None,  # DEPRECATED
+        vectorize_particles=False,
+        strict_enumeration_warning=True,
+    ):
         self.loss_fn = loss_fn
         self.divergence = divergence
         if max_iarange_nesting is not None:
@@ -48,8 +50,11 @@ class GeneralizedVariationalLoss(ELBO):
 
     @torch.no_grad()
     def loss(self, model, guide, *args, **kwargs):
-        return self.loss_fn.loss(model, guide, *args, **kwargs) + self.divergence.loss(model, guide, *args, **kwargs)
+        return self.loss_fn.loss(model, guide, *args, **kwargs) + self.divergence.loss(
+            model, guide, *args, **kwargs
+        )
 
     def loss_and_grads(self, model, guide, *args, **kwargs):
-        return self.loss_fn.loss_and_grads(model, guide, *args, **kwargs) + self.divergence.loss_and_grads(model, guide, *args, **kwargs)
-
+        return self.loss_fn.loss_and_grads(
+            model, guide, *args, **kwargs
+        ) + self.divergence.loss_and_grads(model, guide, *args, **kwargs)

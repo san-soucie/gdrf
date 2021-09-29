@@ -1,8 +1,9 @@
 """Console script for gdrf."""
 
 import fire
+
 from .train import train
-from .visualize import matrixplot_cli, stackplot_1d_cli, maxplot_2d_cli
+from .visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
 
 
 def help():
@@ -12,7 +13,6 @@ def help():
 
 
 class PlotCLI(object):
-
     def __init__(self):
         self.stack = stackplot_1d_cli
         self.matrix = matrixplot_cli

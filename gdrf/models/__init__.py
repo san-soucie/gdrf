@@ -1,8 +1,8 @@
-from .topic_model import CategoricalModel, TopicModel, SpatioTemporalTopicModel
 from .abstract_gdrf import AbstractGDRF
 from .gdrf import GDRF, MultinomialGDRF
 from .sparse_gdrf import SparseGDRF, SparseMultinomialGDRF
-from .train import train_gdrf, TrainingMode
+from .topic_model import CategoricalModel, SpatioTemporalTopicModel, TopicModel
+from .train import TrainingMode, train_gdrf
 
 __all__ = [
     "CategoricalModel",
@@ -14,5 +14,5 @@ __all__ = [
     "SparseGDRF",
     "SparseMultinomialGDRF",
     "train_gdrf",
-    "TrainingMode"
+    "TrainingMode",
 ]

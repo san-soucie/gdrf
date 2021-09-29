@@ -1,76 +1,85 @@
-import torch
+from typing import Callable, Optional, Union
+
 import pyro
-import pyro.nn as nn
-
-
-import pyro.distributions as dist
-
 import pyro.contrib.gp as gp
-
-
+import pyro.distributions as dist
+import pyro.nn as nn
+import torch
 from pyro.ops.indexing import Vindex
 
-
-from .topic_model import scale_decorator
-
-from typing import Callable, Union, Optional
-from .utils import jittercholesky
 from .abstract_gdrf import AbstractGDRF
+from .topic_model import scale_decorator
+from .utils import jittercholesky
 
 
 class GDRF(AbstractGDRF):
-
-    def __init__(self,
-                 num_observation_categories: int,
-                 num_topic_categories: int,
-                 world: list[tuple[float, float]],
-                 kernel: gp.kernels.Kernel,
-                 dirichlet_param: Union[float, torch.Tensor],
-                 xs: torch.Tensor,
-                 ws: Optional[torch.Tensor] = None,
-                 mean_function: Callable = None,
-                 link_function: Callable = None,
-                 device: str = 'cpu',
-                 whiten: bool = False,
-                 jitter: float = 1e-8,
-                 maxjitter: int = 5,
-                 **kwargs):
-        super().__init__(num_observation_categories, num_topic_categories, world, kernel, dirichlet_param,
-                         mean_function=mean_function, link_function=link_function, device=device, )
+    def __init__(
+        self,
+        num_observation_categories: int,
+        num_topic_categories: int,
+        world: list[tuple[float, float]],
+        kernel: gp.kernels.Kernel,
+        dirichlet_param: Union[float, torch.Tensor],
+        xs: torch.Tensor,
+        ws: Optional[torch.Tensor] = None,
+        mean_function: Callable = None,
+        link_function: Callable = None,
+        device: str = "cpu",
+        whiten: bool = False,
+        jitter: float = 1e-8,
+        maxjitter: int = 5,
+        **kwargs
+    ):
+        super().__init__(
+            num_observation_categories,
+            num_topic_categories,
+            world,
+            kernel,
+            dirichlet_param,
+            mean_function=mean_function,
+            link_function=link_function,
+            device=device,
+        )
         if ws is not None and ws.size(-2) != xs.size(-2):
-            raise ValueError("Expected the number of input data points equal to the number of output data points, "
-                             "but got {} and {}", xs.size(-2), ws.size(-2))
+            raise ValueError(
+                "Expected the number of input data points equal to the number of output data points, "
+                "but got {} and {}",
+                xs.size(-2),
+                ws.size(-2),
+            )
         self.xs = xs
         self.ws = ws
         self._word_topic_matrix_map = nn.PyroParam(
             self._dirichlet_param.to(self.device),
-            constraint=dist.constraints.stack([dist.constraints.simplex for _ in range(self._K)], dim=-2)
+            constraint=dist.constraints.stack(
+                [dist.constraints.simplex for _ in range(self._K)], dim=-2
+            ),
         )
         self._jitter = jitter
         self._maxjitter = maxjitter
         self._whiten = whiten
         N = self.xs.size(-2)
         self.latent_shape = torch.Size([self._K])
-        f_loc = self.xs.new_zeros(self.latent_shape + (N, ))
+        f_loc = self.xs.new_zeros(self.latent_shape + (N,))
         self.f_loc = nn.PyroParam(f_loc)
         identity = dist.util.eye_like(self.xs, N)
         f_scale_tril = identity.repeat(self.latent_shape + (1, 1))
         self.f_scale_tril = nn.PyroParam(f_scale_tril, dist.constraints.lower_cholesky)
         self._sample_latent = True
 
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
         return {
-            'perplexity': self.perplexity(xs, ws).item(),
-            'kernel variance': self._get('_kernel.variance'),
-            'kernel lengthscale': self._get('_kernel.lengthscale'),
-            'topic probabilities': self.topic_probs(xs).detach().cpu().numpy(),
-            'word-topic matrix': self.word_topic_matrix.detach().cpu().numpy(),
-            'word probabilities': self.word_probs(xs).detach().cpu().numpy(),
+            "perplexity": self.perplexity(xs, ws).item(),
+            "kernel variance": self._get("_kernel.variance"),
+            "kernel lengthscale": self._get("_kernel.lengthscale"),
+            "topic probabilities": self.topic_probs(xs).detach().cpu().numpy(),
+            "word-topic matrix": self.word_topic_matrix.detach().cpu().numpy(),
+            "word probabilities": self.word_probs(xs).detach().cpu().numpy(),
         }
 
     @nn.pyro_method
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def log_topic_probs(self, xs):
         self._check_Xnew_shape(xs)
         self.set_mode("guide")
@@ -109,7 +118,7 @@ class GDRF(AbstractGDRF):
             )
 
     @nn.pyro_method
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def model(self, xs, ws, subsample=False):
         self.set_mode("model")
         N = xs.size(-2)
@@ -143,15 +152,24 @@ class GDRF(AbstractGDRF):
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param).to_event(zero_loc.dim()-1))
+        phi = pyro.sample(
+            self._pyro_get_fullname("phi"),
+            dist.Dirichlet(self._dirichlet_param).to_event(zero_loc.dim() - 1),
+        )
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
-            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist))
-            w = pyro.sample(self._pyro_get_fullname("w"), dist.Categorical(probs=Vindex(phi)[..., z, :]), obs=ws)
+            z = pyro.sample(
+                self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
+            )
+            w = pyro.sample(
+                self._pyro_get_fullname("w"),
+                dist.Categorical(probs=Vindex(phi)[..., z, :]),
+                obs=ws,
+            )
         return w
 
     @nn.pyro_method
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
@@ -169,10 +187,12 @@ class GDRF(AbstractGDRF):
         phi = pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
-            z = pyro.sample(self._pyro_get_fullname('z'), dist.Categorical(probs=topic_dist))
+            z = pyro.sample(
+                self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
+            )
 
     @nn.pyro_method
-    @scale_decorator('Xnew')
+    @scale_decorator("Xnew")
     def forward(self, Xnew, full_cov=False):
         r"""
         Computes the mean and covariance matrix (or variance) of Gaussian Process
@@ -210,7 +230,7 @@ class GDRF(AbstractGDRF):
 
 class MultinomialGDRF(GDRF):
     @nn.pyro_method
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def model(self, xs, ws, subsample=False):
         self.set_mode("model")
 
@@ -244,14 +264,22 @@ class MultinomialGDRF(GDRF):
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
-        phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(zero_loc.dim()-1))
+        phi = pyro.sample(
+            self._pyro_get_fullname("phi"),
+            dist.Dirichlet(self.beta).to_event(zero_loc.dim() - 1),
+        )
         word_dist = f_res @ phi
         with pyro.plate("obs", device=self.device):
-            w = pyro.sample(self._pyro_get_fullname("w"), dist.Multinomial(probs=word_dist), obs=ws, validate_args=False)
+            w = pyro.sample(
+                self._pyro_get_fullname("w"),
+                dist.Multinomial(probs=word_dist),
+                obs=ws,
+                validate_args=False,
+            )
         return w
 
     @nn.pyro_method
-    @scale_decorator('xs')
+    @scale_decorator("xs")
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
@@ -266,5 +294,6 @@ class MultinomialGDRF(GDRF):
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        phi = pyro.sample(self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(1))
-
+        phi = pyro.sample(
+            self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(1)
+        )
