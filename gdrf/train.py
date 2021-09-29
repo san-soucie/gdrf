@@ -10,28 +10,38 @@ import sys
 import time
 from copy import deepcopy
 from pathlib import Path
+from typing import Union
 
-import pandas as pd
 import numpy as np
-
-import pyro.optim
-import pyro.infer
+import pandas as pd
 import pyro.contrib.gp
+import pyro.infer
+import pyro.optim
 import torch
 import yaml
 from tqdm import trange
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF
-
-from typing import Union
-
-from gdrf.utils.general import init_seeds, strip_optimizer, get_latest_run, check_dataset, check_git_status, \
-    check_requirements, check_file, set_logging, colorstr, methods, EarlyStopping, increment_path, \
-    select_device, intersect_dicts
-from gdrf.utils.wandblogger import check_wandb_resume
-from gdrf.utils.loggers import Loggers
 from gdrf.utils.callbacks import Callbacks
+from gdrf.utils.general import (
+    EarlyStopping,
+    check_dataset,
+    check_file,
+    check_git_status,
+    check_requirements,
+    colorstr,
+    get_latest_run,
+    increment_path,
+    init_seeds,
+    intersect_dicts,
+    methods,
+    select_device,
+    set_logging,
+    strip_optimizer,
+)
+from gdrf.utils.loggers import Loggers
+from gdrf.utils.wandblogger import check_wandb_resume
 
 FILE = Path(__file__).resolve()
 sys.path.append(FILE.parents[0].as_posix())
@@ -39,58 +49,59 @@ sys.path.append(FILE.parents[0].as_posix())
 LOGGER = logging.getLogger(__name__)
 
 GDRF_MODEL_DICT = {
-    'gdrf': GDRF,
-    'multinomialgdrf': MultinomialGDRF,
-    'sparsegdrf': SparseGDRF,
-    'sparsemultinomialgdrf': SparseMultinomialGDRF,
+    "gdrf": GDRF,
+    "multinomialgdrf": MultinomialGDRF,
+    "sparsegdrf": SparseGDRF,
+    "sparsemultinomialgdrf": SparseMultinomialGDRF,
 }
 OPTIMIZER_DICT = {
-    'adagradrmsprop': pyro.optim.AdagradRMSProp,
-    'clippedadam': pyro.optim.ClippedAdam,
-    'dctadam': pyro.optim.DCTAdam,
-    'adadelta': pyro.optim.Adadelta,
-    'adagrad': pyro.optim.Adagrad,
-    'adam': pyro.optim.Adam,
-    'adamw': pyro.optim.AdamW,
-    'sparseadam': pyro.optim.SparseAdam,
-    'adamax': pyro.optim.Adamax,
-    'asgd': pyro.optim.ASGD,
-    'sgd': pyro.optim.SGD,
-    'rprop': pyro.optim.Rprop,
-    'rmsprop': pyro.optim.RMSprop
+    "adagradrmsprop": pyro.optim.AdagradRMSProp,
+    "clippedadam": pyro.optim.ClippedAdam,
+    "dctadam": pyro.optim.DCTAdam,
+    "adadelta": pyro.optim.Adadelta,
+    "adagrad": pyro.optim.Adagrad,
+    "adam": pyro.optim.Adam,
+    "adamw": pyro.optim.AdamW,
+    "sparseadam": pyro.optim.SparseAdam,
+    "adamax": pyro.optim.Adamax,
+    "asgd": pyro.optim.ASGD,
+    "sgd": pyro.optim.SGD,
+    "rprop": pyro.optim.Rprop,
+    "rmsprop": pyro.optim.RMSprop,
 }
 OBJECTIVE_DICT = {
-    'elbo': pyro.infer.Trace_ELBO,
-    'graphelbo': pyro.infer.TraceGraph_ELBO,
-    'renyielbo': pyro.infer.RenyiELBO
+    "elbo": pyro.infer.Trace_ELBO,
+    "graphelbo": pyro.infer.TraceGraph_ELBO,
+    "renyielbo": pyro.infer.RenyiELBO,
 }
 KERNEL_DICT = {
-    'rbf': pyro.contrib.gp.kernels.RBF,
-    'matern32': pyro.contrib.gp.kernels.Matern32,
-    'matern52': pyro.contrib.gp.kernels.Matern52,
-    'exponential': pyro.contrib.gp.kernels.Exponential,
-    'rationalquadratic': pyro.contrib.gp.kernels.RationalQuadratic,
+    "rbf": pyro.contrib.gp.kernels.RBF,
+    "matern32": pyro.contrib.gp.kernels.Matern32,
+    "matern52": pyro.contrib.gp.kernels.Matern52,
+    "exponential": pyro.contrib.gp.kernels.Exponential,
+    "rationalquadratic": pyro.contrib.gp.kernels.RationalQuadratic,
 }
 
 
-def train(cfg: Union[str, dict] = 'data/cfg.yaml',
-          project: str = "wandb/mvco",
-          name: str = 'mvco_adamax_grid',
-          device: str = 'cuda:0',
-          exist_ok: bool = True,
-          weights: str = '',
-          data: str = 'data/data.csv',
-          dimensions: int = 1,
-          epochs: int = 3000,
-          resume: Union[str, bool] = False,
-          nosave: bool = False,
-          entity: str = None,
-          upload_dataset: bool = False,
-          save_period: int = -1,
-          artifact_alias: str = 'latest',
-          patience: int = 100,
-          verbose: bool = True
-          ):
+def train(
+    cfg: Union[str, dict] = "data/cfg.yaml",
+    project: str = "wandb/mvco",
+    name: str = "mvco_adamax_grid",
+    device: str = "cuda:0",
+    exist_ok: bool = True,
+    weights: str = "",
+    data: str = "data/data.csv",
+    dimensions: int = 1,
+    epochs: int = 3000,
+    resume: Union[str, bool] = False,
+    nosave: bool = False,
+    entity: str = None,
+    upload_dataset: bool = False,
+    save_period: int = -1,
+    artifact_alias: str = "latest",
+    patience: int = 100,
+    verbose: bool = True,
+):
     """
     Trains a GDRF
 
@@ -117,25 +128,26 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
     save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
 
     set_logging(verbose=verbose)
-    print(colorstr('train: ') + ', '.join(f'{k}={v}' for k, v in opt.items()))
+    print(colorstr("train: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
     check_git_status()
-    check_requirements(requirements=FILE.parent / 'requirements.txt', exclude=[])
-
+    check_requirements(requirements=FILE.parent / "requirements.txt", exclude=[])
 
     # Resume
     if resume and not check_wandb_resume(resume):  # resume an interrupted run
-        ckpt = resume if isinstance(resume, str) else get_latest_run()  # specified or most recent path
-        assert os.path.isfile(ckpt), 'ERROR: --resume checkpoint does not exist'
-        with open(Path(ckpt).parent.parent / 'opt.yaml') as f:
-            assert os.path.isfile(Path(ckpt).parent.parent / 'opt.yaml')
+        ckpt = (
+            resume if isinstance(resume, str) else get_latest_run()
+        )  # specified or most recent path
+        assert os.path.isfile(ckpt), "ERROR: --resume checkpoint does not exist"
+        with open(Path(ckpt).parent.parent / "opt.yaml") as f:
+            assert os.path.isfile(Path(ckpt).parent.parent / "opt.yaml")
             opt = yaml.safe_load(f)  # replace
-        with open(Path(ckpt).parent.parent / 'cfg.yaml') as f:
-            assert os.path.isfile(Path(ckpt).parent.parent / 'cfg.yaml')
+        with open(Path(ckpt).parent.parent / "cfg.yaml") as f:
+            assert os.path.isfile(Path(ckpt).parent.parent / "cfg.yaml")
             cfg = yaml.safe_load(f)  # replace
-        opt['cfg'], opt['weights'], opt['resume'] = cfg, ckpt, True
+        opt["cfg"], opt["weights"], opt["resume"] = cfg, ckpt, True
         weights = ckpt
         resume = True
-        LOGGER.info(f'Resuming training from {ckpt}')
+        LOGGER.info(f"Resuming training from {ckpt}")
     else:
         data = check_file(data)
         cfg = check_file(cfg)
@@ -143,30 +155,30 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
     if isinstance(cfg, str):
         with open(cfg) as f:
             cfg = yaml.safe_load(f)  # load hyps dict
-    model_type = cfg['model']['type']
-    model_hyp = cfg['model']['hyperparameters']
-    kernel_type = cfg['kernel']['type']
-    kernel_hyp = cfg['kernel']['hyperparameters']
-    optimizer_type = cfg['optimizer']['type']
-    optimizer_hyp = cfg['optimizer']['hyperparameters']
-    objective_type = cfg['objective']['type']
-    objective_hyp = cfg['objective']['hyperparameters']
+    model_type = cfg["model"]["type"]
+    model_hyp = cfg["model"]["hyperparameters"]
+    kernel_type = cfg["kernel"]["type"]
+    kernel_hyp = cfg["kernel"]["hyperparameters"]
+    optimizer_type = cfg["optimizer"]["type"]
+    optimizer_hyp = cfg["optimizer"]["hyperparameters"]
+    objective_type = cfg["objective"]["type"]
+    objective_hyp = cfg["objective"]["hyperparameters"]
     device = select_device(device)
 
-    pretrained = weights.endswith('.pt')
+    pretrained = weights.endswith(".pt")
 
     # Directories
-    w = save_dir / 'weights'  # weights dir
+    w = save_dir / "weights"  # weights dir
     w.mkdir(parents=True, exist_ok=True)  # make dir
-    last, best = w / 'last.pt', w / 'best.pt'
+    last, best = w / "last.pt", w / "best.pt"
 
     # Hyperparameters
-    LOGGER.info(colorstr('config: ') + ', '.join(f'{k}={v}' for k, v in cfg.items()))
+    LOGGER.info(colorstr("config: ") + ", ".join(f"{k}={v}" for k, v in cfg.items()))
 
     # Save run settings
-    with open(save_dir / 'cfg.yaml', 'w') as f:
+    with open(save_dir / "cfg.yaml", "w") as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
-    with open(save_dir / 'opt.yaml', 'w') as f:
+    with open(save_dir / "opt.yaml", "w") as f:
         yaml.safe_dump(opt, f, sort_keys=False)
     data_dict = None
 
@@ -182,18 +194,22 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
             callbacks.register_action(k, callback=getattr(loggers, k))
 
     # Config
-    cuda = device != 'cpu'
+    cuda = device != "cpu"
     init_seeds(1)
     data_dict = data_dict or check_dataset(data)  # check if None
-    train_path = data_dict['train']
+    train_path = data_dict["train"]
 
     # Dataset
-    dataset = pd.read_csv(
-        filepath_or_buffer=data,
-        index_col=list(range(dimensions)),
-        header=0,
-        parse_dates=True,
-    ).fillna(0).astype(int)
+    dataset = (
+        pd.read_csv(
+            filepath_or_buffer=data,
+            index_col=list(range(dimensions)),
+            header=0,
+            parse_dates=True,
+        )
+        .fillna(0)
+        .astype(int)
+    )
     index = dataset.index
     index = index.values if dimensions == 1 else np.array(index.to_list())
     index = index - index.min(axis=-dimensions, keepdims=True)
@@ -207,12 +223,11 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
     world = list(zip(min_xs, max_xs))
     num_observation_categories = len(dataset.columns)
 
-
     # Kernel
     for k, v in kernel_hyp.items():
         if isinstance(v, float):
             kernel_hyp[k] = torch.tensor(v).to(device)
-    kernel = KERNEL_DICT[kernel_type](input_dim = dimensions, **kernel_hyp)
+    kernel = KERNEL_DICT[kernel_type](input_dim=dimensions, **kernel_hyp)
     kernel = kernel.to(device)
 
     # Model
@@ -223,60 +238,76 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
         kernel=kernel,
         num_observation_categories=num_observation_categories,
         device=device,
-        **model_hyp
+        **model_hyp,
     )
-
-
-
 
     # Optimizer
     optimizer = OPTIMIZER_DICT[optimizer_type](optim_args=optimizer_hyp)
 
     # Variational Objective
-    objective = OBJECTIVE_DICT[objective_type](vectorize_particles=True, **objective_hyp)
-    start_epoch, best_fitness = 0, float('-inf')
+    objective = OBJECTIVE_DICT[objective_type](
+        vectorize_particles=True, **objective_hyp
+    )
+    start_epoch, best_fitness = 0, float("-inf")
 
     if pretrained:
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
         exclude = []  # exclude keys
-        csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
+        csd = ckpt["model"].float().state_dict()  # checkpoint state_dict as FP32
         csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
         model.load_state_dict(csd, strict=False)  # load
-        LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')
-        if ckpt['optimizer'] is not None:
-            optimizer.set_state(ckpt['optimizer'])
-            best_fitness = ckpt['best_fitness']
+        LOGGER.info(
+            f"Transferred {len(csd)}/{len(model.state_dict())} items from {weights}"
+        )
+        if ckpt["optimizer"] is not None:
+            optimizer.set_state(ckpt["optimizer"])
+            best_fitness = ckpt["best_fitness"]
 
         # Epochs
-        start_epoch = ckpt['epoch'] + 1
+        start_epoch = ckpt["epoch"] + 1
         if resume:
-            assert start_epoch > 0, f'{weights} training to {epochs} epochs is finished, nothing to resume.'
+            assert (
+                start_epoch > 0
+            ), f"{weights} training to {epochs} epochs is finished, nothing to resume."
         if epochs < start_epoch:
-            LOGGER.info(f"{weights} has been trained for {ckpt['epoch']} epochs. Fine-tuning for {epochs} more epochs.")
-            epochs += ckpt['epoch']  # finetune additional epochs
+            LOGGER.info(
+                f"{weights} has been trained for {ckpt['epoch']} epochs. Fine-tuning for {epochs} more epochs."
+            )
+            epochs += ckpt["epoch"]  # finetune additional epochs
 
         del ckpt, csd
     # SVI object
-    scale = pyro.poutine.scale(scale=1.0/len(xs))
-    svi = pyro.infer.SVI(model=scale(model.model), guide=scale(model.guide), optim=optimizer, loss=objective)
+    scale = pyro.poutine.scale(scale=1.0 / len(xs))
+    svi = pyro.infer.SVI(
+        model=scale(model.model),
+        guide=scale(model.guide),
+        optim=optimizer,
+        loss=objective,
+    )
 
     LOGGER.info(f"{colorstr('model:')} {type(model).__name__}")
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}")
     LOGGER.info(f"{colorstr('objective:')} {type(objective).__name__}")
     # Resume
 
-    callbacks.run('on_pretrain_routine_end')
+    callbacks.run("on_pretrain_routine_end")
 
     # Model parameters
 
     # Start training
     t0 = time.time()
     stopper = EarlyStopping(best_fitness=best_fitness, patience=patience)
-    LOGGER.info(f"Logging results to {colorstr('bold', save_dir)}\n"
-                f'Starting training for {epochs} epochs...')
+    LOGGER.info(
+        f"Logging results to {colorstr('bold', save_dir)}\n"
+        f"Starting training for {epochs} epochs..."
+    )
     with logging_redirect_tqdm():
         pbar = trange(start_epoch, epochs, initial=start_epoch, total=epochs)
-        for epoch in pbar:  # epoch ------------------------------------------------------------------
+        for (
+            epoch
+        ) in (
+            pbar
+        ):  # epoch ------------------------------------------------------------------
             model.train()
 
             loss = svi.step(xs, ws, subsample=False)
@@ -285,37 +316,51 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
 
             pbar.set_description(f"Epoch {epoch+1}")
             pbar.set_postfix(loss=loss, perplexity=perplexity)
-            callbacks.run('on_train_epoch_end', epoch=epoch)
-            log_vals = [loss, perplexity, model.kernel_lengthscale, model.kernel_variance]
+            callbacks.run("on_train_epoch_end", epoch=epoch)
+            log_vals = [
+                loss,
+                perplexity,
+                model.kernel_lengthscale,
+                model.kernel_variance,
+            ]
             fi = -perplexity
             if fi > best_fitness:
                 best_fitness = fi
-            callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
+            callbacks.run("on_fit_epoch_end", log_vals, epoch, best_fitness, fi)
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
             if (not nosave) or final_epoch:
-                ckpt = {'epoch': epoch,
-                        'best_fitness': best_fitness,
-                        'model': deepcopy(model).half(),
-                        'optimizer': optimizer.get_state(),
-                        'wandb_id': loggers.wandb.wandb_run.id if loggers.wandb else None}
+                ckpt = {
+                    "epoch": epoch,
+                    "best_fitness": best_fitness,
+                    "model": deepcopy(model).half(),
+                    "optimizer": optimizer.get_state(),
+                    "wandb_id": loggers.wandb.wandb_run.id if loggers.wandb else None,
+                }
                 torch.save(ckpt, last)
                 if best_fitness == fi:
                     torch.save(ckpt, best)
                 del ckpt
-                callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
+                callbacks.run(
+                    "on_model_save", last, epoch, final_epoch, best_fitness, fi
+                )
             if stopper(epoch=epoch - start_epoch, fitness=fi):
                 break
 
             # end epoch ---------------------------------------------------------------------------------------
-    LOGGER.info(f'\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours.')
+    LOGGER.info(
+        f"\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours."
+    )
     for f in last, best:
         if f.exists():
             strip_optimizer(f)  # strip optimizers
-    callbacks.run('on_train_end', last, best, xs, ws, dataset.index, dataset.columns, epoch)
+    callbacks.run(
+        "on_train_end", last, best, xs, ws, dataset.index, dataset.columns, epoch
+    )
     LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
     torch.cuda.empty_cache()
     return None
+
 
 if __name__ == "__main__":
     train()
