@@ -9,7 +9,7 @@ import torch
 import gdrf.models
 from .general import colorstr, emojis
 from .wandblogger import WandbLogger
-from ..visualize import stackplot_1d, matrix_plot
+from ..visualize import stackplot_1d, matrix_plot, maxplot_2d
 import holoviews as hv
 
 LOGGERS = ('csv', 'wandb')  # text-file, Weights & Biases
@@ -43,6 +43,10 @@ def _artifacts(save_dir, ckpt: str, index, obs_cats: list[str], xs: torch.Tensor
             plots['topic_prob.png'] = stackplot_1d(topic_prob_df)
             plots['word_prob.png'] = stackplot_1d(word_prob_df)
             plots['observations.png'] = stackplot_1d(obs_df)
+        elif n_dims == 2:
+            plots['topic_prob.png'] = maxplot_2d(topic_prob_df)
+            plots['word_prob.png'] = maxplot_2d(word_prob_df)
+            plots['observations.png'] = maxplot_2d(obs_df)
         for plot_name, plot in plots.items():
             hv.save(plot, save_dir / plot_name)
             files[f"Results/{plot_name}"] = wandb.Image(str(save_dir / plot_name), caption=plot_name)
@@ -55,7 +59,7 @@ def _artifacts(save_dir, ckpt: str, index, obs_cats: list[str], xs: torch.Tensor
     return files
 
 
-class Loggers():
+class Loggers:
     # YOLOv5 Loggers class
     def __init__(self, save_dir=None, weights=None, opt=None, hyp=None, logger=None, include=LOGGERS):
         self.save_dir = save_dir

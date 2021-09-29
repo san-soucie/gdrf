@@ -2,7 +2,7 @@
 
 import fire
 from .train import train
-from .visualize import matrixplot_cli, stackplot_1d_cli
+from .visualize import matrixplot_cli, stackplot_1d_cli, maxplot_2d_cli
 
 
 def help():
@@ -16,6 +16,7 @@ class PlotCLI(object):
     def __init__(self):
         self.stack = stackplot_1d_cli
         self.matrix = matrixplot_cli
+        self.max = maxplot_2d_cli
 
 
 class CLI(object):

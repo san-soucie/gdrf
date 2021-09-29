@@ -1,13 +1,9 @@
 import pandas as pd
 import numpy as np
 import torch
-import csv
 
 import holoviews as hv
 from holoviews import opts
-from holoviews.operation.datashader import rasterize, datashade
-import datashader as ds
-from holoviews.operation import decimate
 import hvplot.pandas
 hv.extension('matplotlib')
 import panel as pn
@@ -52,13 +48,16 @@ def parse_spatiotemporal(
     return data
 
 
+def _normalize(data: pd.DataFrame):
+    ret = data.div(data.sum(axis=1), axis=0)
+    return ret[~ret.index.duplicated()]
+
+
 def stackplot_1d(
     data: Union[str, torch.Tensor, pd.DataFrame, np.ndarray],
     index: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series, pd.Index, str]] = None,
 ):
-    data = parse_spatiotemporal(data, index, dims=1)
-    data = data.div(data.sum(axis=1), axis=0)
-    data = data[~data.index.duplicated()]
+    data = _normalize(parse_spatiotemporal(data, index, dims=1))
     # if len(data) > 1000:  # Too many points
     #     n = len(data) // 1000
     #     data = data[np.arange(len(data)) % n == 1]
@@ -75,6 +74,38 @@ def stackplot_1d(
     stack = hv.Area.stack(overlay)
     return stack
 
+def _heatmap(data: pd.DataFrame, fig_inches: tuple[float, float], log: bool=False, probability: bool = False):
+    heatmap = data.hvplot.heatmap()
+    n_x = len(data.columns)
+    n_y = len(data)
+
+    hmopts = (lambda **x: x)(
+        logz=log,
+        show_values=False,
+        xrotation=90,
+        fig_size=400,
+        cmap='summer' if probability else 'prism'
+    )
+    if probability:
+        hmopts['clim'] = (1e-5, 1.)
+        hmopts['colorbar'] = True
+        hmopts['fig_inches'] = fig_inches
+        hmopts['aspect'] = 6
+
+    heatmap.opts(opts.HeatMap(**hmopts))
+    return heatmap
+
+
+def maxplot_2d(
+    data: Union[str, torch.Tensor, pd.DataFrame, np.ndarray],
+    index: Optional[Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series, pd.Index, str]] = None,
+):
+    data = _normalize(parse_spatiotemporal(data, index, dims=2))
+    mle = data.idxmax(axis=1).unstack(level=1).astype(int)
+    fig_inches = (0.01 * len(data.columns), 0.01 * len(data))
+    return _heatmap(mle, fig_inches=fig_inches, log=False, probability=False)
+
+
 def matrix_plot(
     data: Union[str, torch.Tensor, pd.DataFrame, np.ndarray],
     log: bool = False,
@@ -83,10 +114,8 @@ def matrix_plot(
     data = parse_matrix(data)
     if log:
         data = data + epsilon
-    heatmap = data.hvplot.heatmap()
-    heatmap.opts(opts.HeatMap(colorbar=True, clim=(1e-5, 1.), logz=log, cmap='summer', fig_size=400
-    ))
-    return heatmap
+    fig_inches = (.125 * len(data.columns), .25 * len(data))
+    return _heatmap(data, fig_inches=fig_inches, log=log, probability=True)
 
 
 def display(plot):
@@ -127,11 +156,27 @@ def matrixplot_cli(
     """
     display(matrix_plot(data, log=log, epsilon=epsilon))
 
+
+def maxplot_2d_cli(
+    data: str,
+    index: str = None
+):
+    """
+    Creates a 2-D maximum plot from the probabilities in the CSV file `data`.
+    Optionally, a two-column CSV file `index` may be provided.
+    The first row of CSV files should be a header.
+    All columns are considered data, except if no `index` CSV is provided the first two columns of `data` are the index.
+
+    :param str data: A CSV file with probabilities. Header row is required, index columns are optional
+    :param str index: An optional CSV file with the index. Header row is required.
+    """
+    display(maxplot_2d(data, index))
+
 def main():
-    # file = "/home/sansoucie/PycharmProjects/gdrf/data/test_matrix.csv"
-    # plot = matrix_plot(data=file, log=True)
-    file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
-    plot = stackplot_1d(data=file)
+    file = "/home/sansoucie/PycharmProjects/gdrf/data/data_2d_artificial.csv"
+    plot = maxplot_2d(data=file)
+    # file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
+    # plot = stackplot_1d(data=file)
     row = pn.Row(plot)
     row.show()
 
