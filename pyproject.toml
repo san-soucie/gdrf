@@ -103,5 +103,8 @@ exclude = '''
   | buck-out
   | build
   | dist
+  | data
+  | wandb
+  | venv
 )/
 '''
