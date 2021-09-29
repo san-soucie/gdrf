@@ -2,20 +2,20 @@ model:
     type: sparsemultinomialgdrf
     hyperparameters:
         num_topic_categories: 5
-        dirichlet_param: 0.0001
-        n_points: 25
-        fixed_inducing_points: False
+        dirichlet_param: 0.00000001
+        n_points: 200
+        fixed_inducing_points: True
         inducing_init: random
         maxjitter: 15
 kernel:
     type: rbf
     hyperparameters:
-        lengthscale: 0.1
-        variance: 10.0
+        lengthscale: 0.01
+        variance: 50.0
 optimizer:
-    type: adamw
+    type: adagrad
     hyperparameters:
-        lr: 0.001
+        lr: 0.01
 objective:
     type: graphelbo
     hyperparameters:

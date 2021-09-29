@@ -74,14 +74,14 @@ KERNEL_DICT = {
 
 
 def train(cfg: Union[str, dict] = 'data/cfg.yaml',
-          project: str = "wandb/gdrf",
-          name: str = 'test_2d',
+          project: str = "wandb/mvco",
+          name: str = 'mvco_adamax_grid',
           device: str = 'cuda:0',
           exist_ok: bool = True,
           weights: str = '',
-          data: str = 'data/data_2d_artificial.csv',
-          dimensions: int = 2,
-          epochs: int = 300,
+          data: str = 'data/data.csv',
+          dimensions: int = 1,
+          epochs: int = 3000,
           resume: Union[str, bool] = False,
           nosave: bool = False,
           entity: str = None,
@@ -257,8 +257,8 @@ def train(cfg: Union[str, dict] = 'data/cfg.yaml',
 
         del ckpt, csd
     # SVI object
-
-    svi = pyro.infer.SVI(model=model.model, guide=model.guide, optim=optimizer, loss=objective)
+    scale = pyro.poutine.scale(scale=1.0/len(xs))
+    svi = pyro.infer.SVI(model=scale(model.model), guide=scale(model.guide), optim=optimizer, loss=objective)
 
     LOGGER.info(f"{colorstr('model:')} {type(model).__name__}")
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}")
