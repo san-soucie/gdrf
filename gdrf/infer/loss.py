@@ -1,23 +1,24 @@
-import torch
+import warnings
+from typing import Callable
 
+import torch
 from pyro.distributions.util import is_identically_zero
 from pyro.infer.elbo import ELBO
 from pyro.infer.enum import get_importance_trace
 from pyro.infer.util import get_dependent_plate_dims, is_validation_enabled, torch_sum
 from pyro.util import check_if_enumerated, warn_if_nan
-from typing import Callable
-import warnings
 
 
 class Loss(ELBO):
-    def __init__(self,
-                 loss_fn: Callable,
-                 num_particles=2,
-                 max_plate_nesting=float("inf"),
-                 max_iarange_nesting=None,  # DEPRECATED
-                 vectorize_particles=False,
-                 strict_enumeration_warning=True,
-                 ):
+    def __init__(
+        self,
+        loss_fn: Callable,
+        num_particles=2,
+        max_plate_nesting=float("inf"),
+        max_iarange_nesting=None,  # DEPRECATED
+        vectorize_particles=False,
+        strict_enumeration_warning=True,
+    ):
         self.loss_fn = loss_fn
         if max_iarange_nesting is not None:
             warnings.warn(
@@ -85,7 +86,9 @@ class Loss(ELBO):
 
         # grab a vectorized trace from the generator
         for model_trace, guide_trace in self._get_traces(model, guide, args, kwargs):
-            surrogate_loss_particle = self.loss_fn(model_trace, guide_trace, args, kwargs)
+            surrogate_loss_particle = self.loss_fn(
+                model_trace, guide_trace, args, kwargs
+            )
             loss_particle = surrogate_loss_particle.detach().item()
 
             if is_identically_zero(loss_particle):
@@ -131,24 +134,26 @@ class Loss(ELBO):
         warn_if_nan(loss, "loss")
         return loss
 
+
 def _log_prob_loss(model_trace, guide_trace, *args, **kwargs):
     loss_particle = 0
     sum_dims = get_dependent_plate_dims(model_trace.nodes.values())
     for name, site in model_trace.nodes.items():
         if site["type"] == "sample" and site["is_observed"]:
-            loss_particle = loss_particle + torch_sum(site['log_prob'], sum_dims)
+            loss_particle = loss_particle + torch_sum(site["log_prob"], sum_dims)
 
     return loss_particle
 
 
 class LogLikelihoodLoss(Loss):
-    def __init__(self,
-                 num_particles=2,
-                 max_plate_nesting=float("inf"),
-                 max_iarange_nesting=None,  # DEPRECATED
-                 vectorize_particles=False,
-                 strict_enumeration_warning=True,
-                 ):
+    def __init__(
+        self,
+        num_particles=2,
+        max_plate_nesting=float("inf"),
+        max_iarange_nesting=None,  # DEPRECATED
+        vectorize_particles=False,
+        strict_enumeration_warning=True,
+    ):
         super().__init__(
             loss_fn=_log_prob_loss,
             num_particles=num_particles,

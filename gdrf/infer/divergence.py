@@ -1,17 +1,21 @@
+import warnings
 from abc import ABCMeta, abstractmethod
-import torch
+from typing import Callable
 
+import torch
 from pyro.distributions.util import is_identically_zero
 from pyro.infer.elbo import ELBO
 from pyro.infer.enum import get_importance_trace
-from pyro.infer.util import get_dependent_plate_dims, is_validation_enabled, torch_sum, torch_item
+from pyro.infer.util import (
+    get_dependent_plate_dims,
+    is_validation_enabled,
+    torch_item,
+    torch_sum,
+)
 from pyro.util import check_if_enumerated, warn_if_nan
-from typing import Callable
-import warnings
 
 
 class Divergence(ELBO, metaclass=ABCMeta):
-
     def _get_trace(self, model, guide, args, kwargs):
         """
         Returns a single trace from the guide, and the model that is run
@@ -24,7 +28,6 @@ class Divergence(ELBO, metaclass=ABCMeta):
             check_if_enumerated(guide_trace)
         return model_trace, guide_trace
 
-
     @torch.no_grad()
     @abstractmethod
     def loss(self, model, guide, *args, **kwargs):
@@ -34,16 +37,18 @@ class Divergence(ELBO, metaclass=ABCMeta):
     def loss_and_grads(self, model, guide, *args, **kwargs):
         pass
 
+
 class NonlinearExpectationDivergence(Divergence):
-    def __init__(self,
-                 nonlinearity: Callable,
-                 loss_fn: Callable,
-                 num_particles=2,
-                 max_plate_nesting=float("inf"),
-                 max_iarange_nesting=None,  # DEPRECATED
-                 vectorize_particles=False,
-                 strict_enumeration_warning=True,
-                 ):
+    def __init__(
+        self,
+        nonlinearity: Callable,
+        loss_fn: Callable,
+        num_particles=2,
+        max_plate_nesting=float("inf"),
+        max_iarange_nesting=None,  # DEPRECATED
+        vectorize_particles=False,
+        strict_enumeration_warning=True,
+    ):
         self.nonlinearity = nonlinearity
         self.loss_fn = loss_fn
         if max_iarange_nesting is not None:
@@ -99,7 +104,9 @@ class NonlinearExpectationDivergence(Divergence):
 
         # grab a vectorized trace from the generator
         for model_trace, guide_trace in self._get_traces(model, guide, args, kwargs):
-            surrogate_loss_particle = self.loss_fn(model_trace, guide_trace, args, kwargs)
+            surrogate_loss_particle = self.loss_fn(
+                model_trace, guide_trace, args, kwargs
+            )
             loss_particle = surrogate_loss_particle.detach().item()
 
             if is_identically_zero(loss_particle):
@@ -127,7 +134,9 @@ class NonlinearExpectationDivergence(Divergence):
             loss_particles = torch.stack(loss_particles)
             surrogate_loss_particles = torch.stack(surrogate_loss_particles)
 
-        divergence = self.nonlinearity(loss_particles.sum(dim=0, keepdim=True) / self.num_particles)
+        divergence = self.nonlinearity(
+            loss_particles.sum(dim=0, keepdim=True) / self.num_particles
+        )
 
         # collect parameters to train from model and guide
         trainable_params = any(
@@ -139,7 +148,9 @@ class NonlinearExpectationDivergence(Divergence):
         if trainable_params and getattr(
             surrogate_loss_particles, "requires_grad", False
         ):
-            surrogate_divergence = -self.nonlinearity(surrogate_loss_particles.sum() / self.num_particles)
+            surrogate_divergence = -self.nonlinearity(
+                surrogate_loss_particles.sum() / self.num_particles
+            )
             surrogate_divergence.backward()
         loss = -divergence
         warn_if_nan(loss, "loss")
@@ -151,49 +162,58 @@ def _kl_divergence_loss(model_trace, guide_trace, *args, **kwargs):
     sum_dims = get_dependent_plate_dims(model_trace.nodes.values())
     for name, site in model_trace.nodes.items():
         if site["type"] == "sample" and not site["is_observed"]:
-            divergence_particle = divergence_particle + torch_sum(site['log_prob'], sum_dims)
+            divergence_particle = divergence_particle + torch_sum(
+                site["log_prob"], sum_dims
+            )
     for name, site in guide_trace.nodes.items():
         if site["type"] == "sample":
-            divergence_particle = divergence_particle - torch_sum(site['log_prob'], sum_dims)
+            divergence_particle = divergence_particle - torch_sum(
+                site["log_prob"], sum_dims
+            )
 
     return divergence_particle
 
 
 def _renyi_divergence_loss_factory(alpha):
     def fn(model_trace, guide_trace, *args, **kwargs):
-        divergence_particle = _kl_divergence_loss(model_trace, guide_trace, *args, **kwargs)
+        divergence_particle = _kl_divergence_loss(
+            model_trace, guide_trace, *args, **kwargs
+        )
         if alpha == 1.0:
             return divergence_particle
         else:
             return (divergence_particle * (alpha - 1)).exp()
+
     return fn
 
 
 def _f_divergence_loss_factory(f: Callable):
     # assumes f convex
     def fn(model_trace, guide_trace, *args, **kwargs):
-        divergence_particle = _kl_divergence_loss(model_trace, guide_trace, *args, **kwargs)
+        divergence_particle = _kl_divergence_loss(
+            model_trace, guide_trace, *args, **kwargs
+        )
         return f(divergence_particle) - f(1.0)
+
     return fn
 
 
 class KLDivergence(NonlinearExpectationDivergence):
-
     def __init__(self):
         super().__init__(nonlinearity=lambda *args: args, loss_fn=_kl_divergence_loss)
 
 
 class RenyiDivergence(NonlinearExpectationDivergence):
-
     def __init__(self, alpha=1.0):
         self.alpha = alpha
         super().__init__(
             nonlinearity=lambda x: torch.log(x) / (1 - alpha),
-            loss_fn=_renyi_divergence_loss_factory(alpha)
+            loss_fn=_renyi_divergence_loss_factory(alpha),
         )
 
 
 class FDivergence(NonlinearExpectationDivergence):
-
     def __init__(self, f: Callable):
-        super().__init__(nonlinearity=lambda *args: args, loss_fn=_f_divergence_loss_factory(f))
+        super().__init__(
+            nonlinearity=lambda *args: args, loss_fn=_f_divergence_loss_factory(f)
+        )

@@ -2,7 +2,7 @@ model:
     type: sparsemultinomialgdrf
     hyperparameters:
         num_topic_categories: 5
-        dirichlet_param: 0.00000001
+        dirichlet_param: 0.0001
         n_points: 200
         fixed_inducing_points: True
         inducing_init: random
@@ -13,7 +13,7 @@ kernel:
         lengthscale: 0.01
         variance: 50.0
 optimizer:
-    type: adagrad
+    type: clippedadam
     hyperparameters:
         lr: 0.01
 objective:
