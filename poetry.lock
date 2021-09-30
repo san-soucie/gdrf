@@ -1414,6 +1414,23 @@ docs = ["pygments-github-lexers (>=0.0.5)", "sphinx (>=2.0.0)", "sphinxcontrib-a
 testing = ["flaky (>=3.4.0)", "freezegun (>=0.3.11)", "psutil (>=5.6.1)", "pytest (>=4.0.0)", "pytest-cov (>=2.5.1)", "pytest-mock (>=1.10.0)", "pytest-randomly (>=1.0.0)", "pytest-xdist (>=1.22.2)", "pathlib2 (>=2.3.3)"]
 
 [[package]]
+name = "tox-poetry-dev-dependencies"
+version = "0.0.9"
+description = "Tox plugin to help working with Poetry-based projects"
+category = "dev"
+optional = false
+python-versions = "~=3.5"
+
+[package.dependencies]
+poetry-core = ">=1.0,<2.0"
+tomlkit = "*"
+tox = "*"
+
+[package.extras]
+dev_package = ["twine", "wheel"]
+dev_test = ["mypy", "pycodestyle", "pydocstyle", "pylint", "pytest", "pytest-mypy", "pytest-pycodestyle", "pytest-pydocstyle", "pytest-pylint", "pytest-yapf3", "yapf"]
+
+[[package]]
 name = "tox-poetry-installer"
 version = "0.8.1"
 description = "A plugin for Tox that lets you install test environment dependencies from the Poetry lockfile"
@@ -1597,7 +1614,7 @@ test = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0,<3.10"
-content-hash = "e3e0f60557b4f10e7cff942182d39d75a55888e62f1bb5579429cb676bb6a3f7"
+content-hash = "ba12402a8c0e2c1578a6df1df4ab57e14f7f826d3f0b8cba33826f86f2b18716"
 
 [metadata.files]
 appdirs = [
@@ -2591,6 +2608,10 @@ torchvision = [
 tox = [
     {file = "tox-3.24.4-py2.py3-none-any.whl", hash = "sha256:5e274227a53dc9ef856767c21867377ba395992549f02ce55eb549f9fb9a8d10"},
     {file = "tox-3.24.4.tar.gz", hash = "sha256:c30b57fa2477f1fb7c36aa1d83292d5c2336cd0018119e1b1c17340e2c2708ca"},
+]
+tox-poetry-dev-dependencies = [
+    {file = "tox-poetry-dev-dependencies-0.0.9.tar.gz", hash = "sha256:1a4a409190537a0084090f32d3b7c8ff5daa5d800b7571eb2098db996c656fb1"},
+    {file = "tox_poetry_dev_dependencies-0.0.9-py3-none-any.whl", hash = "sha256:5e826edd7213525576168b8beec53f62fb1534c3161fb9bc3de67a5d6d8a4f48"},
 ]
 tox-poetry-installer = [
     {file = "tox-poetry-installer-0.8.1.tar.gz", hash = "sha256:e3ee6578baa7f0ff9129182cc68af9eb0bbde520f9b0460a3f6e451579832c21"},
