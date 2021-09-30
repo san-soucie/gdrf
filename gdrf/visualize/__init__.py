@@ -1,16 +1,16 @@
+from typing import Optional, Union
+
 import holoviews as hv
-import hvplot.pandas
+import hvplot.pandas  # noqa
 import numpy as np
 import pandas as pd
+import panel as pn
 import torch
 from holoviews import opts
 
 hv.extension("matplotlib")
-import panel as pn
-
 pn.extension()
-
-from typing import Optional, Union
+pd.options.plotting.backend = "holoviews"
 
 
 def parse_matrix(data: Union[str, torch.Tensor, pd.DataFrame, np.ndarray]):
@@ -95,8 +95,6 @@ def _heatmap(
     probability: bool = False,
 ):
     heatmap = data.hvplot.heatmap()
-    n_x = len(data.columns)
-    n_y = len(data)
 
     hmopts = (lambda **x: x)(
         logz=log,

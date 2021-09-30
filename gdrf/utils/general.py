@@ -12,6 +12,7 @@ import logging
 import os
 import platform
 import random
+import re
 import signal
 import subprocess
 import urllib
@@ -150,7 +151,7 @@ def is_colab():
         import google.colab
 
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -439,7 +440,7 @@ def git_describe(path=Path(__file__).parent):  # path must be a directory
         return subprocess.check_output(
             s, shell=True, stderr=subprocess.STDOUT
         ).decode()[:-1]
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return ""  # not a git repository
 
 

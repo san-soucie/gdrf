@@ -190,7 +190,7 @@ class SparseGDRF(AbstractGDRF):
         )
 
         f_loc = f_loc + self._mean_function(xs)
-        with pyro.plate("topics", self._K, device=self.device) as idx:
+        with pyro.plate("topics", self._K, device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("u"),
                 dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
@@ -236,7 +236,7 @@ class SparseGDRF(AbstractGDRF):
         )
         f_loc = f_loc + self._mean_function(xs)
         phi_map = self._word_topic_matrix_map
-        with pyro.plate("topics", self.K, device=self.device) as idx:
+        with pyro.plate("topics", self.K, device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("u"),
                 dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
@@ -249,7 +249,7 @@ class SparseGDRF(AbstractGDRF):
             pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
-            z = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("z"), dist.Categorical(self._link_function(mu))
             )
 
@@ -377,14 +377,14 @@ class SparseMultinomialGDRF(SparseGDRF):
         )
         f_loc = f_loc + self._mean_function(xs)
         phi_map = self._word_topic_matrix_map
-        with pyro.plate("topics", self.K, device=self.device) as idx:
+        with pyro.plate("topics", self.K, device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("u"),
                 dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
                     u_loc.dim() - 1
                 ),
             )
-            mu = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
             pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
