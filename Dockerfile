@@ -28,6 +28,6 @@ FROM base as final
 
 COPY --from=builder /venv /venv
 COPY --from=builder /app/dist .
-
+ENV PATH="/venv/bin:$PATH"
 RUN . /venv/bin/activate && pip install *.whl
 CMD ["python", "-m", "gdrf"]
