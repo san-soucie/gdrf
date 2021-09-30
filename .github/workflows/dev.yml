@@ -109,7 +109,7 @@ jobs:
           pip install poetry tox tox-gh-actions
       - name: Verify dependencies installed
         run: |
-          python -c 'import tox; import tox_poetry_installer; from poetry.poetry import Poetry'
+          python -c 'import tox; from poetry.poetry import Poetry'
 
       - name: test with tox
         run:
