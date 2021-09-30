@@ -59,6 +59,7 @@ twine  = "^3.3.0"
 mkdocs-autorefs = "0.1.1"
 pre-commit = "^2.12.0"
 toml = "^0.10.2"
+tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
 
 [tool.poetry.extras]
 test = [
