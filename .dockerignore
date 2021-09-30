@@ -15,6 +15,9 @@ htmlcov/
 .coverage.*
 .pytest_cache/
 .venv
+.tox/
+dist/
+site/
 venv
 
 .DS_Store

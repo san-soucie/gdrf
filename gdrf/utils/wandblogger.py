@@ -232,7 +232,7 @@ class WandbLogger:
             )
             assert model_artifact is not None, "Error: W&B model artifact doesn't exist"
             modeldir = model_artifact.download()
-            epochs_trained = model_artifact.metadata.get("epochs_trained")
+            # epochs_trained = model_artifact.metadata.get("epochs_trained")
             total_epochs = model_artifact.metadata.get("total_epochs")
             is_finished = total_epochs is None
             assert (
