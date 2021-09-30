@@ -61,9 +61,9 @@ def _artifacts(
         topic_prob_df.to_csv(save_dir / "topic_probs.csv")
         word_prob_df.to_csv(save_dir / "word_probs.csv")
         word_topic_matrix_df.to_csv(save_dir / "word_topic_matrix.csv")
-        files[f"Results/topic_probs.csv"] = wandb.Table(data=topic_prob_df)
-        files[f"Results/word_probs.csv"] = wandb.Table(data=word_prob_df)
-        files[f"Results/word_topic_matrix.csv"] = wandb.Table(data=word_topic_matrix_df)
+        files["Results/topic_probs.csv"] = wandb.Table(data=topic_prob_df)
+        files["Results/word_probs.csv"] = wandb.Table(data=word_prob_df)
+        files["Results/word_topic_matrix.csv"] = wandb.Table(data=word_topic_matrix_df)
     return files
 
 

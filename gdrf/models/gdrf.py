@@ -129,7 +129,7 @@ class GDRF(AbstractGDRF):
         zero_loc = xs.new_zeros(self.f_loc.shape)
         if self.whiten:
             identity = dist.util.eye_like(xs, N)
-            mu = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
                     zero_loc.dim() - 1
@@ -138,7 +138,7 @@ class GDRF(AbstractGDRF):
             f_scale_tril = Lff.matmul(self.f_scale_tril)
             f_loc = Lff.matmul(self.f_loc.unsqueeze(-1)).squeeze(-1)
         else:
-            mu = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=Lff).to_event(
                     zero_loc.dim() - 1
@@ -184,10 +184,10 @@ class GDRF(AbstractGDRF):
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        phi = pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
+        pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
-            z = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
             )
 
@@ -242,7 +242,7 @@ class MultinomialGDRF(GDRF):
         zero_loc = xs.new_zeros(self.f_loc.shape)
         if self.whiten:
             identity = dist.util.eye_like(xs, N)
-            mu = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
                     zero_loc.dim() - 1
@@ -251,7 +251,7 @@ class MultinomialGDRF(GDRF):
             f_scale_tril = Lff.matmul(self.f_scale_tril)
             f_loc = Lff.matmul(self.f_loc.unsqueeze(-1)).squeeze(-1)
         else:
-            mu = pyro.sample(
+            pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.MultivariateNormal(zero_loc, scale_tril=Lff).to_event(
                     zero_loc.dim() - 1
@@ -293,7 +293,7 @@ class MultinomialGDRF(GDRF):
         f = dist.Normal(self.f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
-        topic_dist = dist.Categorical(f_res)
-        phi = pyro.sample(
+        dist.Categorical(f_res)
+        pyro.sample(
             self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(1)
         )

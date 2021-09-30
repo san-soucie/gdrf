@@ -39,6 +39,8 @@ tqdm = "^4.61.1"
 pyyaml = "^5.4.0"
 plotly = "^5.2.2"
 pillow = "^8.3.2"
+holoviews = "^1.14.6"
+hvplot = "^0.7.3"
 black  = {optional = true, version = "^20.8b1"}
 isort  = {optional = true, version = "^5.6.4"}
 flake8  = {optional = true, version = "^3.8.4"}
@@ -58,6 +60,7 @@ mkdocs-autorefs = {optional = true, version = "0.1.1"}
 pre-commit = {optional = true, version = "^2.12.0"}
 toml = {optional = true, version = "^0.10.2"}
 
+
 [tool.poetry.extras]
 test = [
     "pytest",
@@ -68,7 +71,7 @@ test = [
     "pytest-cov"
     ]
 
-dev = ["tox", "pre-commit", "virtualenv", "pip", "twine", "toml"]
+dev = ["tox", "pre-commit", "virtualenv", "pip", "twine", "toml", "poetry"]
 
 doc = [
     "mkdocs",
@@ -82,6 +85,9 @@ doc = [
 [tool.poetry.scripts]
 gdrf = 'gdrf.cli:main'
 
+
+[tool.poetry.dev-dependencies]
+poetry = "^1.1.10"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

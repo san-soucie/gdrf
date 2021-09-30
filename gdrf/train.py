@@ -83,7 +83,7 @@ KERNEL_DICT = {
 }
 
 
-def train(
+def train(  # noqa: C901
     cfg: Union[str, dict] = "data/cfg.yaml",
     project: str = "wandb/mvco",
     name: str = "mvco_adamax_grid",
