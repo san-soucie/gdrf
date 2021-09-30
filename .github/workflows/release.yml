@@ -129,7 +129,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name:
+      - name: release
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
