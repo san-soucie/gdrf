@@ -60,6 +60,7 @@ mkdocs-autorefs = "0.1.1"
 pre-commit = "^2.12.0"
 toml = "^0.10.2"
 tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
+tox-poetry-dev-dependencies = {extras = ["poetry"], version = "^0.0.9"}
 
 [tool.poetry.extras]
 test = [
