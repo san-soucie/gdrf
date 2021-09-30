@@ -74,7 +74,7 @@ test = [
 dev = ["tox", "pre-commit", "virtualenv", "pip", "twine", "toml", "poetry"]
 
 doc = [
-    "wandb"
+    "wandb",
     "mkdocs",
     "mkdocs-include-markdown-plugin",
     "mkdocs-material",
