@@ -113,7 +113,7 @@ jobs:
 
       - name: test with tox
         run:
-          tox --require-poetry
+          tox
 
       - name: list files
         run: ls -l .
