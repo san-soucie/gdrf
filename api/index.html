@@ -631,26 +631,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#gdrf.models.visualize" class="md-nav__link">
-    visualize
-  </a>
-  
-    <nav class="md-nav" aria-label="visualize">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gdrf.models.visualize.png_bytes_to_numpy" class="md-nav__link">
-    png_bytes_to_numpy()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1221,26 +1201,6 @@
           <li class="md-nav__item">
   <a href="#gdrf.models.utils.generate_data_2d_uniform" class="md-nav__link">
     generate_data_2d_uniform()
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gdrf.models.visualize" class="md-nav__link">
-    visualize
-  </a>
-  
-    <nav class="md-nav" aria-label="visualize">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gdrf.models.visualize.png_bytes_to_numpy" class="md-nav__link">
-    png_bytes_to_numpy()
   </a>
   
 </li>
@@ -2794,78 +2754,6 @@ At each pixel, a random number of observations, uniformly distributed between <c
 
 
 
-  <div class="doc doc-object doc-module">
-
-
-
-<h3 id="gdrf.models.visualize" class="doc doc-heading">
-        <code>visualize</code>
-
-
-
-<a href="#gdrf.models.visualize" class="headerlink" title="Permanent link">&para;</a></h3>
-
-    <div class="doc doc-contents ">
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-  <div class="doc doc-object doc-function">
-
-
-
-<h4 id="gdrf.models.visualize.png_bytes_to_numpy" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">png_bytes_to_numpy</span><span class="p">(</span><span class="n">png</span><span class="p">)</span></code>
-
-
-<a href="#gdrf.models.visualize.png_bytes_to_numpy" class="headerlink" title="Permanent link">&para;</a></h4>
-
-    <div class="doc doc-contents ">
-
-      <p>Convert png bytes to numpy array</p>
-<p>Source: https://gist.github.com/eric-czech/fea266e546efac0e704d99837a52b35f
-Credit: Eric Czech</p>
-
-        <details class="quote">
-          <summary>Source code in <code>gdrf/models/visualize.py</code></summary>
-          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">png_bytes_to_numpy</span><span class="p">(</span><span class="n">png</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert png bytes to numpy array</span>
-
-<span class="sd">    Source: https://gist.github.com/eric-czech/fea266e546efac0e704d99837a52b35f</span>
-<span class="sd">    Credit: Eric Czech</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">png</span><span class="p">)))</span>
-</code></pre></div>
-        </details>
-    </div>
-
-  </div>
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-  </div>
-
-
-
 
   </div>
 
@@ -2916,7 +2804,7 @@ Credit: Eric Czech</p>
 
 
 <h3 id="gdrf.train.train" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="s1">&#39;data/cfg.yaml&#39;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">&#39;wandb/mvco&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mvco_adamax_grid&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="s1">&#39;data/data.csv&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nosave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upload_dataset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_period</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">artifact_alias</span><span class="o">=</span><span class="s1">&#39;latest&#39;</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="s1">&#39;wandb/mvco&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mvco_adamax_grid&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="s1">&#39;data/data.csv&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s1">&#39;sparsemultinomialgdrf&#39;</span><span class="p">,</span> <span class="n">num_topics</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dirichlet_param</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">num_inducing_points</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">fixed_inducing_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inducing_initialization_method</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span> <span class="n">max_jitter</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_type</span><span class="o">=</span><span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">kernel_lengthscale</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">kernel_variance</span><span class="o">=</span><span class="mf">25.0</span><span class="p">,</span> <span class="n">optimizer_type</span><span class="o">=</span><span class="s1">&#39;adamw&#39;</span><span class="p">,</span> <span class="n">optimizer_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">objective_type</span><span class="o">=</span><span class="s1">&#39;graphelbo&#39;</span><span class="p">,</span> <span class="n">objective_num_particles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">objective_renyi_alpha</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nosave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upload_dataset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_period</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">artifact_alias</span><span class="o">=</span><span class="s1">&#39;latest&#39;</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
 
 <a href="#gdrf.train.train" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -2924,8 +2812,7 @@ Credit: Eric Czech</p>
     <div class="doc doc-contents ">
 
       <p>Trains a GDRF</p>
-<p>:param Union[str, dict] cfg: Config file or dict for training run with model and training hyperparameters
-:param str project: Project name for training run
+<p>:param str project: Project name for training run
 :param str name: Run name for training run
 :param str device: Device to store tensors on during training (e.g. 'cpu' or 'cuda:0')
 :param bool exist_ok: Existing project/name ok, do not increment
@@ -2933,7 +2820,23 @@ Credit: Eric Czech</p>
 :param str data: Data.csv file, with first row as column names and first <code>dimensions</code> columns as indexes
 :param int dimensions: Number of non-stationary index dimensions (e.g. a time series is 1D, x-y data are 2D, etc.)
 :param int epochs: Number of training epochs
-:param Union[str, bool] resume: Resume most recent training
+:param str model_type: 'gdrf', 'multinomialgdrf', 'sparsegdrf', or 'sparsemultinomialgdrf'
+:param int num_topics: Number of GDRF topics
+:param float dirichlet_param: GDRF word-topic dirichlet parameter
+:param int num_inducing_points: Number of inducing points for sparse GDRF.
+:param bool fixed_inducing_points: Whether or not sparse inducing point locations are learned
+:param str inducing_initialization_method: 'random' or 'grid'
+:param float jitter: Diagonal jitter initial value for cholesky decomposition of kernel
+:param int max_jitter: Number of orders of magnitude to try scaling the diagonal jitter before failure
+:param str kernel_type: 'rbf', 'matern32', 'matern52', 'exponential', or 'rationalquadratic'
+:param float kernel_lengthscale: Length scale of kernel, from 0 to 1
+:param float kernel_variance: Overall scaling (variance) of kernel.
+:param str optimizer_type: "adagradrmsprop", "clippedadam", "dctadam", "adadelta", "adagrad", "adam", "adamw", "sparseadam", "adamax", "asgd", "sgd", "rprop", "rmsprop"
+:param float optimizer_lr: Learning rate for optimizer
+:param str objective_type: 'elbo', 'graphelbo', or 'renyielbo'
+:param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations
+:param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type
+:param Union[str,bool] resume: Resume most recent training
 :param bool nosave: only save final checkpoint
 :param str entity: W&amp;B entity
 :param bool upload_dataset: Upload dataset to W&amp;B
@@ -2945,7 +2848,6 @@ Credit: Eric Czech</p>
         <details class="quote">
           <summary>Source code in <code>gdrf/train.py</code></summary>
           <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">train</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
-    <span class="n">cfg</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;data/cfg.yaml&quot;</span><span class="p">,</span>
     <span class="n">project</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wandb/mvco&quot;</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mvco_adamax_grid&quot;</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cuda:0&quot;</span><span class="p">,</span>
@@ -2954,6 +2856,22 @@ Credit: Eric Czech</p>
     <span class="n">data</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data/data.csv&quot;</span><span class="p">,</span>
     <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3000</span><span class="p">,</span>
+    <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;sparsemultinomialgdrf&quot;</span><span class="p">,</span>
+    <span class="n">num_topics</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">dirichlet_param</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">num_inducing_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+    <span class="n">fixed_inducing_points</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">inducing_initialization_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span>
+    <span class="n">jitter</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+    <span class="n">max_jitter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">kernel_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rbf&quot;</span><span class="p">,</span>
+    <span class="n">kernel_lengthscale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">kernel_variance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">25.0</span><span class="p">,</span>
+    <span class="n">optimizer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adamw&quot;</span><span class="p">,</span>
+    <span class="n">optimizer_lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">objective_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;graphelbo&quot;</span><span class="p">,</span>
+    <span class="n">objective_num_particles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">objective_renyi_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="n">resume</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nosave</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">entity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2966,7 +2884,6 @@ Credit: Eric Czech</p>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Trains a GDRF</span>
 
-<span class="sd">    :param Union[str, dict] cfg: Config file or dict for training run with model and training hyperparameters</span>
 <span class="sd">    :param str project: Project name for training run</span>
 <span class="sd">    :param str name: Run name for training run</span>
 <span class="sd">    :param str device: Device to store tensors on during training (e.g. &#39;cpu&#39; or &#39;cuda:0&#39;)</span>
@@ -2975,7 +2892,23 @@ Credit: Eric Czech</p>
 <span class="sd">    :param str data: Data.csv file, with first row as column names and first ``dimensions`` columns as indexes</span>
 <span class="sd">    :param int dimensions: Number of non-stationary index dimensions (e.g. a time series is 1D, x-y data are 2D, etc.)</span>
 <span class="sd">    :param int epochs: Number of training epochs</span>
-<span class="sd">    :param Union[str, bool] resume: Resume most recent training</span>
+<span class="sd">    :param str model_type: &#39;gdrf&#39;, &#39;multinomialgdrf&#39;, &#39;sparsegdrf&#39;, or &#39;sparsemultinomialgdrf&#39;</span>
+<span class="sd">    :param int num_topics: Number of GDRF topics</span>
+<span class="sd">    :param float dirichlet_param: GDRF word-topic dirichlet parameter</span>
+<span class="sd">    :param int num_inducing_points: Number of inducing points for sparse GDRF.</span>
+<span class="sd">    :param bool fixed_inducing_points: Whether or not sparse inducing point locations are learned</span>
+<span class="sd">    :param str inducing_initialization_method: &#39;random&#39; or &#39;grid&#39;</span>
+<span class="sd">    :param float jitter: Diagonal jitter initial value for cholesky decomposition of kernel</span>
+<span class="sd">    :param int max_jitter: Number of orders of magnitude to try scaling the diagonal jitter before failure</span>
+<span class="sd">    :param str kernel_type: &#39;rbf&#39;, &#39;matern32&#39;, &#39;matern52&#39;, &#39;exponential&#39;, or &#39;rationalquadratic&#39;</span>
+<span class="sd">    :param float kernel_lengthscale: Length scale of kernel, from 0 to 1</span>
+<span class="sd">    :param float kernel_variance: Overall scaling (variance) of kernel.</span>
+<span class="sd">    :param str optimizer_type: &quot;adagradrmsprop&quot;, &quot;clippedadam&quot;, &quot;dctadam&quot;, &quot;adadelta&quot;, &quot;adagrad&quot;, &quot;adam&quot;, &quot;adamw&quot;, &quot;sparseadam&quot;, &quot;adamax&quot;, &quot;asgd&quot;, &quot;sgd&quot;, &quot;rprop&quot;, &quot;rmsprop&quot;</span>
+<span class="sd">    :param float optimizer_lr: Learning rate for optimizer</span>
+<span class="sd">    :param str objective_type: &#39;elbo&#39;, &#39;graphelbo&#39;, or &#39;renyielbo&#39;</span>
+<span class="sd">    :param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations</span>
+<span class="sd">    :param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type</span>
+<span class="sd">    :param Union[str,bool] resume: Resume most recent training</span>
 <span class="sd">    :param bool nosave: only save final checkpoint</span>
 <span class="sd">    :param str entity: W&amp;B entity</span>
 <span class="sd">    :param bool upload_dataset: Upload dataset to W&amp;B</span>
@@ -2987,6 +2920,81 @@ Credit: Eric Czech</p>
     <span class="n">opt</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
     <span class="n">callbacks</span> <span class="o">=</span> <span class="n">Callbacks</span><span class="p">()</span>
     <span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">increment_path</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="o">/</span> <span class="n">name</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="n">exist_ok</span><span class="p">)))</span>
+    <span class="n">data_dict</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">loggers</span> <span class="o">=</span> <span class="n">Loggers</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">LOGGER</span><span class="p">)</span>  <span class="c1"># loggers instance</span>
+    <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="p">:</span>
+        <span class="n">data_dict</span> <span class="o">=</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">data_dict</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span>
+        <span class="p">(</span>
+            <span class="n">project</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">exist_ok</span><span class="p">,</span>
+            <span class="n">weights</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">dimensions</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="p">,</span>
+            <span class="n">num_topics</span><span class="p">,</span>
+            <span class="n">dirichlet_param</span><span class="p">,</span>
+            <span class="n">num_inducing_points</span><span class="p">,</span>
+            <span class="n">fixed_inducing_points</span><span class="p">,</span>
+            <span class="n">inducing_initialization_method</span><span class="p">,</span>
+            <span class="n">jitter</span><span class="p">,</span>
+            <span class="n">max_jitter</span><span class="p">,</span>
+            <span class="n">kernel_type</span><span class="p">,</span>
+            <span class="n">kernel_lengthscale</span><span class="p">,</span>
+            <span class="n">kernel_variance</span><span class="p">,</span>
+            <span class="n">optimizer_type</span><span class="p">,</span>
+            <span class="n">optimizer_lr</span><span class="p">,</span>
+            <span class="n">objective_type</span><span class="p">,</span>
+            <span class="n">objective_num_particles</span><span class="p">,</span>
+            <span class="n">objective_renyi_alpha</span><span class="p">,</span>
+            <span class="n">resume</span><span class="p">,</span>
+            <span class="n">nosave</span><span class="p">,</span>
+            <span class="n">entity</span><span class="p">,</span>
+            <span class="n">upload_dataset</span><span class="p">,</span>
+            <span class="n">save_period</span><span class="p">,</span>
+            <span class="n">artifact_alias</span><span class="p">,</span>
+            <span class="n">patience</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">exist_ok</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">num_topics</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">dirichlet_param</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">num_inducing_points</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">fixed_inducing_points</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">inducing_initialization_method</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">jitter</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">max_jitter</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_type</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_lengthscale</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_variance</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">optimizer_type</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">optimizer_lr</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">objective_type</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">objective_num_particles</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">objective_renyi_alpha</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">resume</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">nosave</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">upload_dataset</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">save_period</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">artifact_alias</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">patience</span><span class="p">,</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Register actions</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">(</span><span class="n">loggers</span><span class="p">):</span>
+        <span class="n">callbacks</span><span class="o">.</span><span class="n">register_action</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">loggers</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
 
     <span class="n">set_logging</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;train: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
@@ -3002,28 +3010,13 @@ Credit: Eric Czech</p>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">)</span>
             <span class="n">opt</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># replace</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;cfg.yaml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;cfg.yaml&quot;</span><span class="p">)</span>
-            <span class="n">cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># replace</span>
-        <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;cfg&quot;</span><span class="p">],</span> <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">],</span> <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;resume&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">ckpt</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">],</span> <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;resume&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ckpt</span><span class="p">,</span> <span class="kc">True</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">ckpt</span>
         <span class="n">resume</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resuming training from </span><span class="si">{</span><span class="n">ckpt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">check_file</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">cfg</span> <span class="o">=</span> <span class="n">check_file</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># load hyps dict</span>
-    <span class="n">model_type</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-    <span class="n">model_hyp</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">][</span><span class="s2">&quot;hyperparameters&quot;</span><span class="p">]</span>
-    <span class="n">kernel_type</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;kernel&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-    <span class="n">kernel_hyp</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;kernel&quot;</span><span class="p">][</span><span class="s2">&quot;hyperparameters&quot;</span><span class="p">]</span>
-    <span class="n">optimizer_type</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-    <span class="n">optimizer_hyp</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">][</span><span class="s2">&quot;hyperparameters&quot;</span><span class="p">]</span>
-    <span class="n">objective_type</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;objective&quot;</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
-    <span class="n">objective_hyp</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;objective&quot;</span><span class="p">][</span><span class="s2">&quot;hyperparameters&quot;</span><span class="p">]</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">select_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="n">pretrained</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
@@ -3034,25 +3027,14 @@ Credit: Eric Czech</p>
     <span class="n">last</span><span class="p">,</span> <span class="n">best</span> <span class="o">=</span> <span class="n">w</span> <span class="o">/</span> <span class="s2">&quot;last.pt&quot;</span><span class="p">,</span> <span class="n">w</span> <span class="o">/</span> <span class="s2">&quot;best.pt&quot;</span>
 
     <span class="c1"># Hyperparameters</span>
-    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;config: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cfg</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;config: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
 
     <span class="c1"># Save run settings</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_dir</span> <span class="o">/</span> <span class="s2">&quot;cfg.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_dir</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">data_dict</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Loggers</span>
-    <span class="n">loggers</span> <span class="o">=</span> <span class="n">Loggers</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">LOGGER</span><span class="p">)</span>  <span class="c1"># loggers instance</span>
-    <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="p">:</span>
-        <span class="n">data_dict</span> <span class="o">=</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">data_dict</span>
-        <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
-            <span class="n">epochs</span><span class="p">,</span> <span class="n">hyp</span> <span class="o">=</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">model_hyp</span>
-
-        <span class="c1"># Register actions</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">(</span><span class="n">loggers</span><span class="p">):</span>
-            <span class="n">callbacks</span><span class="o">.</span><span class="n">register_action</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">loggers</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
 
     <span class="c1"># Config</span>
     <span class="n">cuda</span> <span class="o">=</span> <span class="n">device</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span>
@@ -3085,10 +3067,12 @@ Credit: Eric Czech</p>
     <span class="n">num_observation_categories</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
 
     <span class="c1"># Kernel</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kernel_hyp</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-            <span class="n">kernel_hyp</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">KERNEL_DICT</span><span class="p">[</span><span class="n">kernel_type</span><span class="p">](</span><span class="n">input_dim</span><span class="o">=</span><span class="n">dimensions</span><span class="p">,</span> <span class="o">**</span><span class="n">kernel_hyp</span><span class="p">)</span>
+    <span class="n">kernel_lengthscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kernel_lengthscale</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">kernel_variance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kernel_variance</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">KERNEL_DICT</span><span class="p">[</span><span class="n">kernel_type</span><span class="p">](</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">lengthscale</span><span class="o">=</span><span class="n">kernel_lengthscale</span><span class="p">,</span> <span class="n">variance</span><span class="o">=</span><span class="n">kernel_variance</span>
+    <span class="p">)</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="c1"># Model</span>
@@ -3099,15 +3083,25 @@ Credit: Eric Czech</p>
         <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
         <span class="n">num_observation_categories</span><span class="o">=</span><span class="n">num_observation_categories</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">model_hyp</span><span class="p">,</span>
+        <span class="n">num_topic_categories</span><span class="o">=</span><span class="n">num_topics</span><span class="p">,</span>
+        <span class="n">dirichlet_param</span><span class="o">=</span><span class="n">dirichlet_param</span><span class="p">,</span>
+        <span class="n">n_points</span><span class="o">=</span><span class="n">num_inducing_points</span><span class="p">,</span>
+        <span class="n">fixed_inducing_points</span><span class="o">=</span><span class="n">fixed_inducing_points</span><span class="p">,</span>
+        <span class="n">inducing_init</span><span class="o">=</span><span class="n">inducing_initialization_method</span><span class="p">,</span>
+        <span class="n">maxjitter</span><span class="o">=</span><span class="n">max_jitter</span><span class="p">,</span>
+        <span class="n">jitter</span><span class="o">=</span><span class="n">jitter</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Optimizer</span>
-    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">OPTIMIZER_DICT</span><span class="p">[</span><span class="n">optimizer_type</span><span class="p">](</span><span class="n">optim_args</span><span class="o">=</span><span class="n">optimizer_hyp</span><span class="p">)</span>
+
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">OPTIMIZER_DICT</span><span class="p">[</span><span class="n">optimizer_type</span><span class="p">](</span><span class="n">lr</span><span class="o">=</span><span class="n">optimizer_lr</span><span class="p">)</span>
 
     <span class="c1"># Variational Objective</span>
+    <span class="n">objective_hyperparameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_particles&quot;</span><span class="p">:</span> <span class="n">objective_num_particles</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">objective_type</span> <span class="o">==</span> <span class="s2">&quot;renyielbo&quot;</span><span class="p">:</span>
+        <span class="n">objective_hyperparameters</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">objective_renyi_alpha</span>
     <span class="n">objective</span> <span class="o">=</span> <span class="n">OBJECTIVE_DICT</span><span class="p">[</span><span class="n">objective_type</span><span class="p">](</span>
-        <span class="n">vectorize_particles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">objective_hyp</span>
+        <span class="n">vectorize_particles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">objective_hyperparameters</span>
     <span class="p">)</span>
     <span class="n">start_epoch</span><span class="p">,</span> <span class="n">best_fitness</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
 
@@ -4339,7 +4333,6 @@ A context manager that will prevent any logging messages triggered during the bo
 
 
   <div class="doc doc-children">
-
 
 
 
