@@ -2,6 +2,8 @@
 Logging utils
 Adapted from YOLOv5, https://github.com/ultralytics/yolov5/
 """
+from typing import List
+
 import holoviews as hv
 import pandas as pd
 import torch
@@ -23,7 +25,7 @@ except (ImportError, AssertionError):
 
 
 def _artifacts(
-    save_dir, ckpt: str, index, obs_cats: list[str], xs: torch.Tensor, ws: torch.Tensor
+    save_dir, ckpt: str, index, obs_cats: List[str], xs: torch.Tensor, ws: torch.Tensor
 ):
     model = torch.load(ckpt, map_location=xs.device)["model"]
     ws_np = ws.detach().cpu().numpy()

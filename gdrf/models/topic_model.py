@@ -2,6 +2,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from functools import wraps
 from inspect import getfullargspec
+from typing import List, Tuple
 
 import pyro.contrib.gp
 import torch
@@ -86,7 +87,7 @@ class SpatioTemporalTopicModel(TopicModel):
         self,
         num_observation_categories: int,
         num_topic_categories: int,
-        world: list[tuple[float, float]],
+        world: List[Tuple[float, float]],
         device: str = "cpu",
     ):
         super().__init__(
