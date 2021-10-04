@@ -182,14 +182,14 @@ def maxplot_2d_cli(data: str, index: str = None):
     display(maxplot_2d(data, index))
 
 
-def main():
-    file = "/home/sansoucie/PycharmProjects/gdrf/data/data_2d_artificial.csv"
-    plot = maxplot_2d(data=file)
-    # file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
-    # plot = stackplot_1d(data=file)
-    row = pn.Row(plot)
-    row.show()
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     file = "/home/sansoucie/PycharmProjects/gdrf/data/data_2d_artificial.csv"
+#     plot = maxplot_2d(data=file)
+#     # file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
+#     # plot = stackplot_1d(data=file)
+#     row = pn.Row(plot)
+#     row.show()
+#
+#
+# if __name__ == "__main__":
+#     main()
