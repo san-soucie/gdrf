@@ -3,7 +3,7 @@ Train a GDRF model on a custom dataset
 Usage:
     $ python path/to/train.py --data mvco.csv
 """
-
+import argparse
 import logging
 import os
 import sys
@@ -42,6 +42,13 @@ from gdrf.utils.general import (
 )
 from gdrf.utils.loggers import Loggers
 from gdrf.utils.wandblogger import check_wandb_resume
+
+try:
+    import wandb
+
+    assert hasattr(wandb, "__version__")  # verify package import not local dir
+except (ImportError, AssertionError):
+    wandb = None
 
 FILE = Path(__file__).resolve()
 sys.path.append(FILE.parents[0].as_posix())
@@ -84,7 +91,6 @@ KERNEL_DICT = {
 
 
 def train(  # noqa: C901
-    cfg: Union[str, dict] = "data/cfg.yaml",
     project: str = "wandb/mvco",
     name: str = "mvco_adamax_grid",
     device: str = "cuda:0",
@@ -93,6 +99,22 @@ def train(  # noqa: C901
     data: str = "data/data.csv",
     dimensions: int = 1,
     epochs: int = 3000,
+    model_type: str = "sparsemultinomialgdrf",
+    num_topics: int = 1,
+    dirichlet_param: float = 0.01,
+    num_inducing_points: int = 25,
+    fixed_inducing_points: bool = True,
+    inducing_initialization_method: str = "random",
+    jitter: float = 1e-8,
+    max_jitter: int = 15,
+    kernel_type: str = "rbf",
+    kernel_lengthscale: float = 0.1,
+    kernel_variance: float = 25.0,
+    optimizer_type: str = "adamw",
+    optimizer_lr: float = 0.001,
+    objective_type: str = "graphelbo",
+    objective_num_particles: int = 1,
+    objective_renyi_alpha: float = 2.0,
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
@@ -105,7 +127,6 @@ def train(  # noqa: C901
     """
     Trains a GDRF
 
-    :param Union[str, dict] cfg: Config file or dict for training run with model and training hyperparameters
     :param str project: Project name for training run
     :param str name: Run name for training run
     :param str device: Device to store tensors on during training (e.g. 'cpu' or 'cuda:0')
@@ -114,7 +135,23 @@ def train(  # noqa: C901
     :param str data: Data.csv file, with first row as column names and first ``dimensions`` columns as indexes
     :param int dimensions: Number of non-stationary index dimensions (e.g. a time series is 1D, x-y data are 2D, etc.)
     :param int epochs: Number of training epochs
-    :param Union[str, bool] resume: Resume most recent training
+    :param str model_type: 'gdrf', 'multinomialgdrf', 'sparsegdrf', or 'sparsemultinomialgdrf'
+    :param int num_topics: Number of GDRF topics
+    :param float dirichlet_param: GDRF word-topic dirichlet parameter
+    :param int num_inducing_points: Number of inducing points for sparse GDRF.
+    :param bool fixed_inducing_points: Whether or not sparse inducing point locations are learned
+    :param str inducing_initialization_method: 'random' or 'grid'
+    :param float jitter: Diagonal jitter initial value for cholesky decomposition of kernel
+    :param int max_jitter: Number of orders of magnitude to try scaling the diagonal jitter before failure
+    :param str kernel_type: 'rbf', 'matern32', 'matern52', 'exponential', or 'rationalquadratic'
+    :param float kernel_lengthscale: Length scale of kernel, from 0 to 1
+    :param float kernel_variance: Overall scaling (variance) of kernel.
+    :param str optimizer_type: "adagradrmsprop", "clippedadam", "dctadam", "adadelta", "adagrad", "adam", "adamw", "sparseadam", "adamax", "asgd", "sgd", "rprop", "rmsprop"
+    :param float optimizer_lr: Learning rate for optimizer
+    :param str objective_type: 'elbo', 'graphelbo', or 'renyielbo'
+    :param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations
+    :param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type
+    :param Union[str,bool] resume: Resume most recent training
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
     :param bool upload_dataset: Upload dataset to W&B
@@ -126,6 +163,81 @@ def train(  # noqa: C901
     opt = locals()
     callbacks = Callbacks()
     save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
+    data_dict = None
+
+    loggers = Loggers(save_dir, weights, opt, LOGGER)  # loggers instance
+    if loggers.wandb:
+        data_dict = loggers.wandb.data_dict
+        opt = wandb.config
+        (
+            project,
+            name,
+            device,
+            exist_ok,
+            weights,
+            data,
+            dimensions,
+            epochs,
+            num_topics,
+            dirichlet_param,
+            num_inducing_points,
+            fixed_inducing_points,
+            inducing_initialization_method,
+            jitter,
+            max_jitter,
+            kernel_type,
+            kernel_lengthscale,
+            kernel_variance,
+            optimizer_type,
+            optimizer_lr,
+            objective_type,
+            objective_num_particles,
+            objective_renyi_alpha,
+            resume,
+            nosave,
+            entity,
+            upload_dataset,
+            save_period,
+            artifact_alias,
+            patience,
+            verbose,
+        ) = (
+            opt.project,
+            opt.name,
+            opt.device,
+            opt.exist_ok,
+            opt.weights,
+            opt.data,
+            opt.dimensions,
+            opt.epochs,
+            opt.num_topics,
+            opt.dirichlet_param,
+            opt.num_inducing_points,
+            opt.fixed_inducing_points,
+            opt.inducing_initialization_method,
+            opt.jitter,
+            opt.max_jitter,
+            opt.kernel_type,
+            opt.kernel_lengthscale,
+            opt.kernel_variance,
+            opt.optimizer_type,
+            opt.optimizer_lr,
+            opt.objective_type,
+            opt.objective_num_particles,
+            opt.objective_renyi_alpha,
+            opt.resume,
+            opt.nosave,
+            opt.entity,
+            opt.upload_dataset,
+            opt.save_period,
+            opt.artifact_alias,
+            opt.patience,
+            opt.verbose,
+        )
+
+        # Register actions
+    for k in methods(loggers):
+        callbacks.register_action(k, callback=getattr(loggers, k))
 
     set_logging(verbose=verbose)
     print(colorstr("train: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
@@ -141,28 +253,13 @@ def train(  # noqa: C901
         with open(Path(ckpt).parent.parent / "opt.yaml") as f:
             assert os.path.isfile(Path(ckpt).parent.parent / "opt.yaml")
             opt = yaml.safe_load(f)  # replace
-        with open(Path(ckpt).parent.parent / "cfg.yaml") as f:
-            assert os.path.isfile(Path(ckpt).parent.parent / "cfg.yaml")
-            cfg = yaml.safe_load(f)  # replace
-        opt["cfg"], opt["weights"], opt["resume"] = cfg, ckpt, True
+        opt["weights"], opt["resume"] = ckpt, True
         weights = ckpt
         resume = True
         LOGGER.info(f"Resuming training from {ckpt}")
     else:
         data = check_file(data)
-        cfg = check_file(cfg)
 
-    if isinstance(cfg, str):
-        with open(cfg) as f:
-            cfg = yaml.safe_load(f)  # load hyps dict
-    model_type = cfg["model"]["type"]
-    model_hyp = cfg["model"]["hyperparameters"]
-    kernel_type = cfg["kernel"]["type"]
-    kernel_hyp = cfg["kernel"]["hyperparameters"]
-    optimizer_type = cfg["optimizer"]["type"]
-    optimizer_hyp = cfg["optimizer"]["hyperparameters"]
-    objective_type = cfg["objective"]["type"]
-    objective_hyp = cfg["objective"]["hyperparameters"]
     device = select_device(device)
 
     pretrained = weights.endswith(".pt")
@@ -173,25 +270,14 @@ def train(  # noqa: C901
     last, best = w / "last.pt", w / "best.pt"
 
     # Hyperparameters
-    LOGGER.info(colorstr("config: ") + ", ".join(f"{k}={v}" for k, v in cfg.items()))
+    LOGGER.info(colorstr("config: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
 
     # Save run settings
-    with open(save_dir / "cfg.yaml", "w") as f:
-        yaml.safe_dump(cfg, f, sort_keys=False)
     with open(save_dir / "opt.yaml", "w") as f:
         yaml.safe_dump(opt, f, sort_keys=False)
     data_dict = None
 
     # Loggers
-    loggers = Loggers(save_dir, weights, opt, cfg, LOGGER)  # loggers instance
-    if loggers.wandb:
-        data_dict = loggers.wandb.data_dict
-        if resume:
-            epochs, hyp = epochs, model_hyp
-
-        # Register actions
-        for k in methods(loggers):
-            callbacks.register_action(k, callback=getattr(loggers, k))
 
     # Config
     cuda = device != "cpu"
@@ -224,10 +310,12 @@ def train(  # noqa: C901
     num_observation_categories = len(dataset.columns)
 
     # Kernel
-    for k, v in kernel_hyp.items():
-        if isinstance(v, float):
-            kernel_hyp[k] = torch.tensor(v).to(device)
-    kernel = KERNEL_DICT[kernel_type](input_dim=dimensions, **kernel_hyp)
+    kernel_lengthscale = torch.tensor(kernel_lengthscale).to(device)
+    kernel_variance = torch.tensor(kernel_variance).to(device)
+
+    kernel = KERNEL_DICT[kernel_type](
+        input_dim=dimensions, lengthscale=kernel_lengthscale, variance=kernel_variance
+    )
     kernel = kernel.to(device)
 
     # Model
@@ -238,15 +326,25 @@ def train(  # noqa: C901
         kernel=kernel,
         num_observation_categories=num_observation_categories,
         device=device,
-        **model_hyp,
+        num_topic_categories=num_topics,
+        dirichlet_param=dirichlet_param,
+        n_points=num_inducing_points,
+        fixed_inducing_points=fixed_inducing_points,
+        inducing_init=inducing_initialization_method,
+        maxjitter=max_jitter,
+        jitter=jitter,
     )
 
     # Optimizer
-    optimizer = OPTIMIZER_DICT[optimizer_type](optim_args=optimizer_hyp)
+
+    optimizer = OPTIMIZER_DICT[optimizer_type](lr=optimizer_lr)
 
     # Variational Objective
+    objective_hyperparameters = {"num_particles": objective_num_particles}
+    if objective_type == "renyielbo":
+        objective_hyperparameters["alpha"] = objective_renyi_alpha
     objective = OBJECTIVE_DICT[objective_type](
-        vectorize_particles=True, **objective_hyp
+        vectorize_particles=True, **objective_hyperparameters
     )
     start_epoch, best_fitness = 0, float("-inf")
 
