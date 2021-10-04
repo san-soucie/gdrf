@@ -74,14 +74,12 @@ class Loggers:
         save_dir=None,
         weights=None,
         opt=None,
-        hyp=None,
         logger=None,
         include=LOGGERS,
     ):
         self.save_dir = save_dir
         self.weights = weights
         self.opt = opt
-        self.hyp = hyp
         self.logger = logger  # for printing results to console
         self.include = include
         self.keys = [
@@ -113,7 +111,8 @@ class Loggers:
                 if self.opt["resume"] and not wandb_artifact_resume
                 else None
             )
-            self.wandb = WandbLogger({"hyp": self.hyp, **self.opt}, run_id)
+            self.wandb = WandbLogger(self.opt, run_id=run_id)
+            self.opt = wandb.config
         else:
             self.wandb = None
 
