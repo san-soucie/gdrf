@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import pyro
 import pyro.contrib.gp as gp
@@ -17,10 +17,10 @@ class SparseGDRF(AbstractGDRF):
         self,
         num_observation_categories: int,
         num_topic_categories: int,
-        world: list[tuple[float, float]],
+        world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
-        n_points: Union[int, list[int]],
+        n_points: Union[int, List[int]],
         fixed_inducing_points: bool = False,
         inducing_init: str = "random",
         mean_function: Callable = None,

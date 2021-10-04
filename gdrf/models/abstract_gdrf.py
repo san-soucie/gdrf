@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Callable, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import pyro
 import pyro.contrib.gp as gp
@@ -23,7 +23,7 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         self,
         num_observation_categories: int,
         num_topic_categories: int,
-        world: list[tuple[float, float]],
+        world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
         mean_function: Callable = None,
