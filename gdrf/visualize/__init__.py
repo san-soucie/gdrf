@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import holoviews as hv
 import hvplot.pandas  # noqa
@@ -90,7 +90,7 @@ def stackplot_1d(
 
 def _heatmap(
     data: pd.DataFrame,
-    fig_inches: tuple[float, float],
+    fig_inches: Tuple[float, float],
     log: bool = False,
     probability: bool = False,
 ):
