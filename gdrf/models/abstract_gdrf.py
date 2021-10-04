@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import pyro
 import pyro.contrib.gp as gp
@@ -53,7 +53,7 @@ class AbstractGDRF(SpatioTemporalTopicModel):
     @abstractmethod
     def artifacts(
         self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False
-    ) -> dict[str, Any]:
+    ) -> Dict[str, Any]:
         pass
 
     def _get(self, x: str):
