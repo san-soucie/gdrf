@@ -168,7 +168,7 @@ def train(  # noqa: C901
     loggers = Loggers(save_dir, weights, opt, LOGGER)  # loggers instance
     if loggers.wandb:
         data_dict = loggers.wandb.data_dict
-        opt = wandb.config
+        opt = wandb.config.as_dict()
         (
             project,
             name,
