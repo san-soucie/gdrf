@@ -485,7 +485,7 @@ def select_device(device=""):
     LOGGER.info(
         s.encode().decode("ascii", "ignore") if platform.system() == "Windows" else s
     )  # emoji-safe
-    return torch.device("cuda:0" if cuda else "cpu")
+    return torch.device("cuda" if cuda else "cpu")
 
 
 class EarlyStopping:
