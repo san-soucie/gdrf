@@ -2925,7 +2925,7 @@ At each pixel, a random number of observations, uniformly distributed between <c
     <span class="n">loggers</span> <span class="o">=</span> <span class="n">Loggers</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">LOGGER</span><span class="p">)</span>  <span class="c1"># loggers instance</span>
     <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="p">:</span>
         <span class="n">data_dict</span> <span class="o">=</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">data_dict</span>
-        <span class="n">opt</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
         <span class="p">(</span>
             <span class="n">project</span><span class="p">,</span>
             <span class="n">name</span><span class="p">,</span>
