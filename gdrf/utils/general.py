@@ -470,7 +470,7 @@ def select_device(device=""):
         ), f"CUDA unavailable, invalid device {device} requested"  # check availability
 
     cuda = not cpu and torch.cuda.is_available()
-    gpu_number = "0"
+    # gpu_number = "0"
     if cuda:
         # devices = (
         #     device.split(",") if device else "0"
@@ -480,9 +480,10 @@ def select_device(device=""):
         #     p = torch.cuda.get_device_properties(i)
         #     s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
         try:
-            gpu_number = os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0]
+            # gpu_number = os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0]
             # p = torch.cuda.get_device_properties(f"cuda:{gpu_number}")
             # s += f"CUDA:{gpu_number} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"
+            pass
         except KeyError:
             pass
     else:
@@ -491,7 +492,7 @@ def select_device(device=""):
     # LOGGER.info(
     #     s.encode().decode("ascii", "ignore") if platform.system() == "Windows" else s
     # )  # emoji-safe
-    return torch.device(f"cuda:{gpu_number}" if cuda else "cpu")
+    return torch.device("cuda:0" if cuda else "cpu")
 
 
 class EarlyStopping:
