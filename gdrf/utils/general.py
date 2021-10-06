@@ -472,15 +472,17 @@ def select_device(device=""):
     cuda = not cpu and torch.cuda.is_available()
     gpu_number = "0"
     if cuda:
-        devices = (
-            device.split(",") if device else "0"
-        )  # range(torch.cuda.device_count())  # i.e. 0,1,6,7
-        space = " " * (len(s) + 1)
-        for i, d in enumerate(devices):
-            p = torch.cuda.get_device_properties(i)
-            s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
+        # devices = (
+        #     device.split(",") if device else "0"
+        # )  # range(torch.cuda.device_count())  # i.e. 0,1,6,7
+        # space = " " * (len(s) + 1)
+        # for i, d in enumerate(devices):
+        #     p = torch.cuda.get_device_properties(i)
+        #     s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
         try:
             gpu_number = os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0]
+            p = torch.cuda.get_device_properties(gpu_number)
+            s += f"CUDA:{gpu_number} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"
         except KeyError:
             pass
     else:
