@@ -337,7 +337,7 @@ def train(  # noqa: C901
 
     # Optimizer
 
-    optimizer = OPTIMIZER_DICT[optimizer_type](lr=optimizer_lr)
+    optimizer = OPTIMIZER_DICT[optimizer_type]({"lr": optimizer_lr})
 
     # Variational Objective
     objective_hyperparameters = {"num_particles": objective_num_particles}
