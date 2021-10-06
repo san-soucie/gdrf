@@ -168,7 +168,7 @@ def train(  # noqa: C901
     loggers = Loggers(save_dir, weights, opt, LOGGER)  # loggers instance
     if loggers.wandb:
         data_dict = loggers.wandb.data_dict
-        opt = wandb.config.as_dict()
+        opt = wandb.config
         (
             project,
             name,
@@ -274,7 +274,7 @@ def train(  # noqa: C901
 
     # Save run settings
     with open(save_dir / "opt.yaml", "w") as f:
-        yaml.safe_dump(opt, f, sort_keys=False)
+        yaml.safe_dump(opt.as_dict(), f, sort_keys=False)
     data_dict = None
 
     # Loggers
