@@ -9,3 +9,7 @@
 * Removed some legacy visualization code
 * Refactored `train.py` to remove external `cfg.yaml` dependence
 * `train.py` now runs entirely through function arguments (and therefore `fire` CLI arguments)
+
+## 0.1.2 (2021-10-05)
+
+* minor bugfix

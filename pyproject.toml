@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "gdrf"
-version = "0.1.1"
+version = "0.1.2"
 homepage = "https://github.com/san-soucie/gdrf"
 description = "Pytorch+GPytorch implementation of GDRFs from San Soucie et al. 2020."
 authors = ["John San Soucie <jsansoucie@whoi.edu>"]
