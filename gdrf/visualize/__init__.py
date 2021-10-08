@@ -63,6 +63,7 @@ def stackplot_1d(
     index: Optional[
         Union[torch.Tensor, np.ndarray, pd.DataFrame, pd.Series, pd.Index, str]
     ] = None,
+    legend=False,
 ):
     data = _normalize(parse_spatiotemporal(data, index, dims=1))
     # if len(data) > 1000:  # Too many points
@@ -81,10 +82,11 @@ def stackplot_1d(
             fig_inches=15,
             fig_bounds=(0, 0, 1, 1),
             fig_size=400,
+            show_legend=legend,
         )
         areas.append(a)
     overlay = hv.Overlay(areas)
-    stack = hv.Area.stack(overlay)
+    stack = hv.Area.stack(overlay).opts(legend_position="right")
     return stack
 
 
@@ -141,7 +143,7 @@ def display(plot):
     pn.Row(plot).show()
 
 
-def stackplot_1d_cli(data: str, index: str = None):
+def stackplot_1d_cli(data: str, index: str = None, legend: bool = False):
     """
     Creates a 1-D stackplot from the probabilities in the CSV file `data`.
     Optionally, a single-column CSV file `index` may be provided.
@@ -150,8 +152,9 @@ def stackplot_1d_cli(data: str, index: str = None):
 
     :param str data: A CSV file with probabilities. Header row is required, index column is optional
     :param str index: An optional CSV file with the index. Header row is required.
+    :param bool legend: Whether or not to display a legend
     """
-    display(stackplot_1d(data, index))
+    display(stackplot_1d(data, index, legend=legend))
 
 
 def matrixplot_cli(data: str, log: bool = False, epsilon: float = 1e-10):
@@ -183,10 +186,10 @@ def maxplot_2d_cli(data: str, index: str = None):
 
 
 # def main():
-#     file = "/home/sansoucie/PycharmProjects/gdrf/data/data_2d_artificial.csv"
-#     plot = maxplot_2d(data=file)
-#     # file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
-#     # plot = stackplot_1d(data=file)
+#     # file = "/home/sansoucie/PycharmProjects/gdrf/data/data_2d_artificial.csv"
+#     # plot = maxplot_2d(data=file)
+#     file = "/home/sansoucie/PycharmProjects/gdrf/data/data.csv"
+#     plot = stackplot_1d(data=file, legend=True)
 #     row = pn.Row(plot)
 #     row.show()
 #
