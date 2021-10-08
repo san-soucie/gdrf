@@ -46,7 +46,7 @@ def _artifacts(
             index=[f"topic {k}" for k in range(n_topics)],
             columns=obs_cats,
         )
-        plots = {"word_topic_matrix.png": matrix_plot(word_topic_matrix_df)}
+        plots = {"word_topic_matrix.png": matrix_plot(word_topic_matrix_df, log=True)}
         if n_dims == 1:
             plots["topic_prob.png"] = stackplot_1d(topic_prob_df)
             plots["word_prob.png"] = stackplot_1d(word_prob_df)
