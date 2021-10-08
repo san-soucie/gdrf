@@ -118,6 +118,8 @@ def train(  # noqa: C901
     streaming_inference: str = "",
     streaming_weight: float = 0.1,
     streaming_exp: float = 1.0,
+    streaming_truncate: int = -1,
+    streaming_size: int = 1,
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
@@ -157,6 +159,8 @@ def train(  # noqa: C901
     :param str streaming_inference: '', 'uniform', 'exp', 'now', 'uniform_now', 'uniform_exp', 'exp_now'
     :param float streaming_weight: Weight to assign first distribution in combination streaming inference. 0.0-1.0
     :param float streaming_exp: Streaming inference exp exponent. must be positive
+    :param int streaming_truncate: Number of recent observations to consider, or -1 for all
+    :param int streaming_size: Number of streaming samples to draw from the distribution given by `streaming_inference`
     :param Union[str,bool] resume: Resume most recent training
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
@@ -202,6 +206,7 @@ def train(  # noqa: C901
             streaming_inference,
             streaming_weight,
             streaming_exp,
+            streaming_truncate,
             resume,
             nosave,
             entity,
@@ -237,6 +242,7 @@ def train(  # noqa: C901
             opt.streaming_inference,
             opt.streaming_weight,
             opt.streaming_exp,
+            opt.streaming_truncate,
             opt.resume,
             opt.nosave,
             opt.entity,
@@ -426,30 +432,32 @@ def train(  # noqa: C901
         for epoch in pbar:  # epoch
             model.train()
             if streaming:
+                n_stream = (
+                    min(epoch + 1, streaming_truncate)
+                    if streaming_truncate > 0
+                    else epoch + 1
+                )
                 if streaming_inference == "uniform":
-                    p = [1.0 for _ in range(epoch + 1)]
+                    p = [1.0 for _ in range(n_stream)]
                 elif streaming_inference == "now":
-                    p = [0.0 for _ in range(epoch + 1)]
+                    p = [0.0 for _ in range(n_stream)]
                     p[-1] = 1.0
                 elif streaming_inference == "exp":
                     p = [
-                        np.exp(-streaming_exp * (epoch + 1 - i))
-                        for i in range(epoch + 1)
+                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
                     ]
                 elif streaming_inference == "uniform_now":
-                    p = [streaming_weight / (epoch + 1) for _ in range(epoch + 1)]
+                    p = [streaming_weight / n_stream for _ in range(n_stream)]
                     p[-1] += 1 - streaming_weight
                 elif streaming_inference == "exp_now":
                     p = [
-                        np.exp(-streaming_exp * (epoch + 1 - i))
-                        for i in range(epoch + 1)
+                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
                     ]
                     p = [streaming_weight * q / sum(p) for q in p]
                     p[-1] += 1 - streaming_weight
                 elif streaming_inference == "uniform_exp":
                     p = [
-                        np.exp(-streaming_exp * (epoch + 1 - i))
-                        for i in range(epoch + 1)
+                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
                     ]
                     p = [(1 - streaming_weight) * q / sum(p) for q in p]
                     p = [q + streaming_weight / (epoch + 1) for q in p]
@@ -459,18 +467,32 @@ def train(  # noqa: C901
                         streaming_inference,
                     )
                 p = [q / sum(p) for q in p]
-                selection = np.random.choice(epoch + 1, p=p)
+                selection = np.random.choice(
+                    n_stream, size=streaming_size if streaming_size > 1 else None, p=p
+                )
+                if streaming_truncate > 0:
+                    selection = (
+                        [x + epoch + 1 - n_stream for x in selection]
+                        if streaming_size > 1
+                        else selection + epoch + 1 - n_stream
+                    )
+                xs_stream = xs[selection, ...]
+                if streaming_size <= 1:
+                    xs_stream = xs_stream.unsqueeze()
+                ws_stream = ws[selection, ...]
+                if streaming_size <= 1:
+                    ws_stream = ws_stream.unsqueeze()
                 loss = svi.step(
-                    xs=xs[selection, ...].unsqueeze(0),
-                    ws=ws[selection, ...].unsqueeze(0),
+                    xs=xs_stream,
+                    ws=ws_stream,
                     subsample=False,
                 )
             else:
                 loss = svi.step(xs=xs, ws=ws, subsample=False)
             model.eval()
             perplexity = model.perplexity(
-                xs[:epoch, ...] if streaming else xs,
-                ws[:epoch, ...] if streaming else ws,
+                xs,
+                ws,
             ).item()
 
             pbar.set_description(f"Epoch {epoch+1}")
