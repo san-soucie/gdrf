@@ -89,7 +89,7 @@ class Loss(ELBO):
             surrogate_loss_particle = self.loss_fn(
                 model_trace, guide_trace, args, kwargs
             )
-            loss_particle = surrogate_loss_particle.detach().item()
+            loss_particle = surrogate_loss_particle.detach()
 
             if is_identically_zero(loss_particle):
                 if tensor_holder is not None:
@@ -130,7 +130,7 @@ class Loss(ELBO):
         ):
             surrogate_loss_val = -surrogate_loss_particles.sum() / self.num_particles
             surrogate_loss_val.backward()
-        loss = -loss_val
+        loss = -loss_val.item()
         warn_if_nan(loss, "loss")
         return loss
 
