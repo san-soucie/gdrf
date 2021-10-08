@@ -115,6 +115,9 @@ def train(  # noqa: C901
     objective_type: str = "graphelbo",
     objective_num_particles: int = 1,
     objective_renyi_alpha: float = 2.0,
+    streaming_inference: str = "",
+    streaming_weight: float = 0.1,
+    streaming_exp: float = 1.0,
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
@@ -151,6 +154,9 @@ def train(  # noqa: C901
     :param str objective_type: 'elbo', 'graphelbo', or 'renyielbo'
     :param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations
     :param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type
+    :param str streaming_inference: '', 'uniform', 'exp', 'now', 'uniform_now', 'uniform_exp', 'exp_now'
+    :param float streaming_weight: Weight to assign first distribution in combination streaming inference. 0.0-1.0
+    :param float streaming_exp: Streaming inference exp exponent. must be positive
     :param Union[str,bool] resume: Resume most recent training
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
@@ -193,6 +199,9 @@ def train(  # noqa: C901
             objective_type,
             objective_num_particles,
             objective_renyi_alpha,
+            streaming_inference,
+            streaming_weight,
+            streaming_exp,
             resume,
             nosave,
             entity,
@@ -225,6 +234,9 @@ def train(  # noqa: C901
             opt.objective_type,
             opt.objective_num_particles,
             opt.objective_renyi_alpha,
+            opt.streaming_inference,
+            opt.streaming_weight,
+            opt.streaming_exp,
             opt.resume,
             opt.nosave,
             opt.entity,
@@ -235,7 +247,9 @@ def train(  # noqa: C901
             opt.verbose,
         )
 
-        # Register actions
+    streaming = streaming_inference != ""
+
+    # Register actions
     for k in methods(loggers):
         callbacks.register_action(k, callback=getattr(loggers, k))
 
@@ -308,6 +322,14 @@ def train(  # noqa: C901
     max_xs = xs.max(dim=0).values.detach().cpu().numpy().tolist()
     world = list(zip(min_xs, max_xs))
     num_observation_categories = len(dataset.columns)
+    n_data = len(index)
+
+    if streaming:
+        LOGGER.info(
+            "Streaming inference selected, settings training epochs to len(data) = %d",
+            n_data,
+        )
+        epochs = n_data
 
     # Kernel
     kernel_lengthscale = torch.tensor(kernel_lengthscale).to(device)
@@ -401,16 +423,55 @@ def train(  # noqa: C901
     )
     with logging_redirect_tqdm():
         pbar = trange(start_epoch, epochs, initial=start_epoch, total=epochs)
-        for (
-            epoch
-        ) in (
-            pbar
-        ):  # epoch ------------------------------------------------------------------
+        for epoch in pbar:  # epoch
             model.train()
-
-            loss = svi.step(xs, ws, subsample=False)
+            if streaming:
+                if streaming_inference == "uniform":
+                    p = [1.0 for _ in range(epoch + 1)]
+                elif streaming_inference == "now":
+                    p = [0.0 for _ in range(epoch + 1)]
+                    p[-1] = 1.0
+                elif streaming_inference == "exp":
+                    p = [
+                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        for i in range(epoch + 1)
+                    ]
+                elif streaming_inference == "uniform_now":
+                    p = [streaming_weight / (epoch + 1) for _ in range(epoch + 1)]
+                    p[-1] += 1 - streaming_weight
+                elif streaming_inference == "exp_now":
+                    p = [
+                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        for i in range(epoch + 1)
+                    ]
+                    p = [streaming_weight * q / sum(p) for q in p]
+                    p[-1] += 1 - streaming_weight
+                elif streaming_inference == "uniform_exp":
+                    p = [
+                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        for i in range(epoch + 1)
+                    ]
+                    p = [(1 - streaming_weight) * q / sum(p) for q in p]
+                    p = [q + streaming_weight / (epoch + 1) for q in p]
+                else:
+                    raise ValueError(
+                        "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
+                        streaming_inference,
+                    )
+                p = [q / sum(p) for q in p]
+                selection = np.random.choice(epoch + 1, p=p)
+                loss = svi.step(
+                    xs=xs[selection, ...].unsqueeze(0),
+                    ws=ws[selection, ...].unsqueeze(0),
+                    subsample=False,
+                )
+            else:
+                loss = svi.step(xs=xs, ws=ws, subsample=False)
             model.eval()
-            perplexity = model.perplexity(xs, ws).item()
+            perplexity = model.perplexity(
+                xs[:epoch, ...] if streaming else xs,
+                ws[:epoch, ...] if streaming else ws,
+            ).item()
 
             pbar.set_description(f"Epoch {epoch+1}")
             pbar.set_postfix(loss=loss, perplexity=perplexity)
