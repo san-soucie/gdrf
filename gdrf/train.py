@@ -486,7 +486,9 @@ def train(  # noqa: C901
             if fi > best_fitness:
                 best_fitness = fi
             callbacks.run("on_fit_epoch_end", log_vals, epoch, best_fitness, fi)
-            final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
+            final_epoch = (epoch + 1 == epochs) or (
+                stopper.possible_stop and not streaming
+            )
             if (not nosave) or final_epoch:
                 ckpt = {
                     "epoch": epoch,
