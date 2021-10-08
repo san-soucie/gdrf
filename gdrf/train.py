@@ -433,7 +433,7 @@ def train(  # noqa: C901
                     p[-1] = 1.0
                 elif streaming_inference == "exp":
                     p = [
-                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        np.exp(-streaming_exp * (epoch + 1 - i))
                         for i in range(epoch + 1)
                     ]
                 elif streaming_inference == "uniform_now":
@@ -441,14 +441,14 @@ def train(  # noqa: C901
                     p[-1] += 1 - streaming_weight
                 elif streaming_inference == "exp_now":
                     p = [
-                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        np.exp(-streaming_exp * (epoch + 1 - i))
                         for i in range(epoch + 1)
                     ]
                     p = [streaming_weight * q / sum(p) for q in p]
                     p[-1] += 1 - streaming_weight
                 elif streaming_inference == "uniform_exp":
                     p = [
-                        np.exp(-streaming_exp * (i - (epoch + 1)))
+                        np.exp(-streaming_exp * (epoch + 1 - i))
                         for i in range(epoch + 1)
                     ]
                     p = [(1 - streaming_weight) * q / sum(p) for q in p]
