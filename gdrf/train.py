@@ -504,7 +504,7 @@ def train(  # noqa: C901
                 callbacks.run(
                     "on_model_save", last, epoch, final_epoch, best_fitness, fi
                 )
-            if stopper(epoch=epoch - start_epoch, fitness=fi):
+            if not streaming and stopper(epoch=epoch - start_epoch, fitness=fi):
                 break
 
             # end epoch ---------------------------------------------------------------------------------------
