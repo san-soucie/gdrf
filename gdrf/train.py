@@ -483,11 +483,10 @@ def train(  # noqa: C901
                             else selection + epoch + 1 - n_stream
                         )
                     xs_stream = xs[selection, ...]
-                    if streaming_size <= 1:
-                        xs_stream = xs_stream.unsqueeze()
                     ws_stream = ws[selection, ...]
                     if streaming_size <= 1:
-                        ws_stream = ws_stream.unsqueeze()
+                        xs_stream = xs_stream.unsqueeze(dim=1)
+                        ws_stream = ws_stream.unsqueeze(dim=1)
                     loss = svi.step(
                         xs=xs_stream,
                         ws=ws_stream,
