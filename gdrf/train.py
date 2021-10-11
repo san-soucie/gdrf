@@ -427,121 +427,130 @@ def train(  # noqa: C901
         f"Logging results to {colorstr('bold', save_dir)}\n"
         f"Starting training for {epochs} epochs..."
     )
-    with logging_redirect_tqdm():
-        pbar = trange(start_epoch, epochs, initial=start_epoch, total=epochs)
-        for epoch in pbar:  # epoch
-            model.train()
-            if streaming:
-                n_stream = (
-                    min(epoch + 1, streaming_truncate)
-                    if streaming_truncate > 0
-                    else epoch + 1
-                )
-                if streaming_inference == "uniform":
-                    p = [1.0 for _ in range(n_stream)]
-                elif streaming_inference == "now":
-                    p = [0.0 for _ in range(n_stream)]
-                    p[-1] = 1.0
-                elif streaming_inference == "exp":
-                    p = [
-                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
-                    ]
-                elif streaming_inference == "uniform_now":
-                    p = [streaming_weight / n_stream for _ in range(n_stream)]
-                    p[-1] += 1 - streaming_weight
-                elif streaming_inference == "exp_now":
-                    p = [
-                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
-                    ]
-                    p = [streaming_weight * q / sum(p) for q in p]
-                    p[-1] += 1 - streaming_weight
-                elif streaming_inference == "uniform_exp":
-                    p = [
-                        np.exp(-streaming_exp * (n_stream - i)) for i in range(n_stream)
-                    ]
-                    p = [(1 - streaming_weight) * q / sum(p) for q in p]
-                    p = [q + streaming_weight / (epoch + 1) for q in p]
+    try:
+        with logging_redirect_tqdm():
+            pbar = trange(start_epoch, epochs, initial=start_epoch, total=epochs)
+            for epoch in pbar:  # epoch
+                model.train()
+                if streaming:
+                    n_stream = (
+                        min(epoch + 1, streaming_truncate)
+                        if streaming_truncate > 0
+                        else epoch + 1
+                    )
+                    if streaming_inference == "uniform":
+                        p = [1.0 for _ in range(n_stream)]
+                    elif streaming_inference == "now":
+                        p = [0.0 for _ in range(n_stream)]
+                        p[-1] = 1.0
+                    elif streaming_inference == "exp":
+                        p = [
+                            np.exp(-streaming_exp * (n_stream - i))
+                            for i in range(n_stream)
+                        ]
+                    elif streaming_inference == "uniform_now":
+                        p = [streaming_weight / n_stream for _ in range(n_stream)]
+                        p[-1] += 1 - streaming_weight
+                    elif streaming_inference == "exp_now":
+                        p = [
+                            np.exp(-streaming_exp * (n_stream - i))
+                            for i in range(n_stream)
+                        ]
+                        p = [streaming_weight * q / sum(p) for q in p]
+                        p[-1] += 1 - streaming_weight
+                    elif streaming_inference == "uniform_exp":
+                        p = [
+                            np.exp(-streaming_exp * (n_stream - i))
+                            for i in range(n_stream)
+                        ]
+                        p = [(1 - streaming_weight) * q / sum(p) for q in p]
+                        p = [q + streaming_weight / (epoch + 1) for q in p]
+                    else:
+                        raise ValueError(
+                            "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
+                            streaming_inference,
+                        )
+                    p = [q / sum(p) for q in p]
+                    selection = np.random.choice(
+                        n_stream,
+                        size=streaming_size if streaming_size > 1 else None,
+                        p=p,
+                    )
+                    if streaming_truncate > 0:
+                        selection = (
+                            [x + epoch + 1 - n_stream for x in selection]
+                            if streaming_size > 1
+                            else selection + epoch + 1 - n_stream
+                        )
+                    xs_stream = xs[selection, ...]
+                    if streaming_size <= 1:
+                        xs_stream = xs_stream.unsqueeze()
+                    ws_stream = ws[selection, ...]
+                    if streaming_size <= 1:
+                        ws_stream = ws_stream.unsqueeze()
+                    loss = svi.step(
+                        xs=xs_stream,
+                        ws=ws_stream,
+                        subsample=False,
+                    )
                 else:
-                    raise ValueError(
-                        "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
-                        streaming_inference,
+                    loss = svi.step(xs=xs, ws=ws, subsample=False)
+                model.eval()
+                perplexity = model.perplexity(
+                    xs,
+                    ws,
+                ).item()
+
+                pbar.set_description(f"Epoch {epoch+1}")
+                pbar.set_postfix(loss=loss, perplexity=perplexity)
+                callbacks.run("on_train_epoch_end", epoch=epoch)
+                log_vals = [
+                    loss,
+                    perplexity,
+                    model.kernel_lengthscale,
+                    model.kernel_variance,
+                ]
+                fi = -perplexity
+                if fi > best_fitness:
+                    best_fitness = fi
+                callbacks.run("on_fit_epoch_end", log_vals, epoch, best_fitness, fi)
+                final_epoch = (epoch + 1 == epochs) or (
+                    stopper.possible_stop and not streaming
+                )
+                if (not nosave) or final_epoch:
+                    ckpt = {
+                        "epoch": epoch,
+                        "best_fitness": best_fitness,
+                        "model": deepcopy(model).half(),
+                        "optimizer": optimizer.get_state(),
+                        "wandb_id": loggers.wandb.wandb_run.id
+                        if loggers.wandb
+                        else None,
+                    }
+                    torch.save(ckpt, last)
+                    if best_fitness == fi:
+                        torch.save(ckpt, best)
+                    del ckpt
+                    callbacks.run(
+                        "on_model_save", last, epoch, final_epoch, best_fitness, fi
                     )
-                p = [q / sum(p) for q in p]
-                selection = np.random.choice(
-                    n_stream, size=streaming_size if streaming_size > 1 else None, p=p
-                )
-                if streaming_truncate > 0:
-                    selection = (
-                        [x + epoch + 1 - n_stream for x in selection]
-                        if streaming_size > 1
-                        else selection + epoch + 1 - n_stream
-                    )
-                xs_stream = xs[selection, ...]
-                if streaming_size <= 1:
-                    xs_stream = xs_stream.unsqueeze()
-                ws_stream = ws[selection, ...]
-                if streaming_size <= 1:
-                    ws_stream = ws_stream.unsqueeze()
-                loss = svi.step(
-                    xs=xs_stream,
-                    ws=ws_stream,
-                    subsample=False,
-                )
-            else:
-                loss = svi.step(xs=xs, ws=ws, subsample=False)
-            model.eval()
-            perplexity = model.perplexity(
-                xs,
-                ws,
-            ).item()
+                if not streaming and stopper(epoch=epoch - start_epoch, fitness=fi):
+                    break
 
-            pbar.set_description(f"Epoch {epoch+1}")
-            pbar.set_postfix(loss=loss, perplexity=perplexity)
-            callbacks.run("on_train_epoch_end", epoch=epoch)
-            log_vals = [
-                loss,
-                perplexity,
-                model.kernel_lengthscale,
-                model.kernel_variance,
-            ]
-            fi = -perplexity
-            if fi > best_fitness:
-                best_fitness = fi
-            callbacks.run("on_fit_epoch_end", log_vals, epoch, best_fitness, fi)
-            final_epoch = (epoch + 1 == epochs) or (
-                stopper.possible_stop and not streaming
-            )
-            if (not nosave) or final_epoch:
-                ckpt = {
-                    "epoch": epoch,
-                    "best_fitness": best_fitness,
-                    "model": deepcopy(model).half(),
-                    "optimizer": optimizer.get_state(),
-                    "wandb_id": loggers.wandb.wandb_run.id if loggers.wandb else None,
-                }
-                torch.save(ckpt, last)
-                if best_fitness == fi:
-                    torch.save(ckpt, best)
-                del ckpt
-                callbacks.run(
-                    "on_model_save", last, epoch, final_epoch, best_fitness, fi
-                )
-            if not streaming and stopper(epoch=epoch - start_epoch, fitness=fi):
-                break
+                # end epoch ---------------------------------------------------------------------------------------
+    finally:
+        LOGGER.info(
+            f"\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours."
+        )
+        for f in last, best:
+            if f.exists():
+                strip_optimizer(f)  # strip optimizers
+        callbacks.run(
+            "on_train_end", last, best, xs, ws, dataset.index, dataset.columns, epoch
+        )
+        LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
-            # end epoch ---------------------------------------------------------------------------------------
-    LOGGER.info(
-        f"\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours."
-    )
-    for f in last, best:
-        if f.exists():
-            strip_optimizer(f)  # strip optimizers
-    callbacks.run(
-        "on_train_end", last, best, xs, ws, dataset.index, dataset.columns, epoch
-    )
-    LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
-
-    torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
     return None
 
 
