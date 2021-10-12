@@ -541,9 +541,12 @@ def train(  # noqa: C901
         LOGGER.info(
             f"\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours."
         )
-        for f in last, best:
+        for i, f in ("last", last), ("best", best):
             if f.exists():
-                strip_optimizer(f)  # strip optimizers
+                try:
+                    strip_optimizer(f)  # strip optimizers
+                except Exception as e:
+                    LOGGER.info(f"Failed to strip optimizer from {i}. Error: {e}")
         callbacks.run(
             "on_train_end", last, best, xs, ws, dataset.index, dataset.columns, epoch
         )
