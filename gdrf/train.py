@@ -120,7 +120,7 @@ def train(  # noqa: C901
     streaming_exp: float = 1.0,
     streaming_truncate: int = -1,
     streaming_size: int = 1,
-    streaming_subepochs: int = 1
+    streaming_subepochs: int = 1,
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
