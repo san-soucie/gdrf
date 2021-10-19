@@ -120,6 +120,7 @@ def train(  # noqa: C901
     streaming_exp: float = 1.0,
     streaming_truncate: int = -1,
     streaming_size: int = 1,
+    streaming_subepochs: int = 1
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
@@ -161,6 +162,7 @@ def train(  # noqa: C901
     :param float streaming_exp: Streaming inference exp exponent. must be positive
     :param int streaming_truncate: Number of recent observations to consider, or -1 for all
     :param int streaming_size: Number of streaming samples to draw from the distribution given by `streaming_inference`
+    :param int streaming_subepochs: Number of training steps per data point
     :param Union[str,bool] resume: Resume most recent training
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
@@ -207,6 +209,7 @@ def train(  # noqa: C901
             streaming_weight,
             streaming_exp,
             streaming_truncate,
+            streaming_subepochs,
             resume,
             nosave,
             entity,
@@ -243,6 +246,7 @@ def train(  # noqa: C901
             opt.streaming_weight,
             opt.streaming_exp,
             opt.streaming_truncate,
+            opt.streaming_subepochs
             opt.resume,
             opt.nosave,
             opt.entity,
@@ -433,65 +437,66 @@ def train(  # noqa: C901
             for epoch in pbar:  # epoch
                 model.train()
                 if streaming:
-                    n_stream = (
-                        min(epoch + 1, streaming_truncate)
-                        if streaming_truncate > 0
-                        else epoch + 1
-                    )
-                    if streaming_inference == "uniform":
-                        p = [1.0 for _ in range(n_stream)]
-                    elif streaming_inference == "now":
-                        p = [0.0 for _ in range(n_stream)]
-                        p[-1] = 1.0
-                    elif streaming_inference == "exp":
-                        p = [
-                            np.exp(-streaming_exp * (n_stream - i))
-                            for i in range(n_stream)
-                        ]
-                    elif streaming_inference == "uniform_now":
-                        p = [streaming_weight / n_stream for _ in range(n_stream)]
-                        p[-1] += 1 - streaming_weight
-                    elif streaming_inference == "exp_now":
-                        p = [
-                            np.exp(-streaming_exp * (n_stream - i))
-                            for i in range(n_stream)
-                        ]
-                        p = [streaming_weight * q / sum(p) for q in p]
-                        p[-1] += 1 - streaming_weight
-                    elif streaming_inference == "uniform_exp":
-                        p = [
-                            np.exp(-streaming_exp * (n_stream - i))
-                            for i in range(n_stream)
-                        ]
-                        p = [(1 - streaming_weight) * q / sum(p) for q in p]
-                        p = [q + streaming_weight / (epoch + 1) for q in p]
-                    else:
-                        raise ValueError(
-                            "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
-                            streaming_inference,
+                    for epoch in range(streaming_subepochs):
+                        n_stream = (
+                            min(epoch + 1, streaming_truncate)
+                            if streaming_truncate > 0
+                            else epoch + 1
                         )
-                    p = [q / sum(p) for q in p]
-                    selection = np.random.choice(
-                        n_stream,
-                        size=streaming_size if streaming_size > 1 else None,
-                        p=p,
-                    )
-                    if streaming_truncate > 0:
-                        selection = (
-                            [x + epoch + 1 - n_stream for x in selection]
-                            if streaming_size > 1
-                            else selection + epoch + 1 - n_stream
+                        if streaming_inference == "uniform":
+                            p = [1.0 for _ in range(n_stream)]
+                        elif streaming_inference == "now":
+                            p = [0.0 for _ in range(n_stream)]
+                            p[-1] = 1.0
+                        elif streaming_inference == "exp":
+                            p = [
+                                np.exp(-streaming_exp * (n_stream - i))
+                                for i in range(n_stream)
+                            ]
+                        elif streaming_inference == "uniform_now":
+                            p = [streaming_weight / n_stream for _ in range(n_stream)]
+                            p[-1] += 1 - streaming_weight
+                        elif streaming_inference == "exp_now":
+                            p = [
+                                np.exp(-streaming_exp * (n_stream - i))
+                                for i in range(n_stream)
+                            ]
+                            p = [streaming_weight * q / sum(p) for q in p]
+                            p[-1] += 1 - streaming_weight
+                        elif streaming_inference == "uniform_exp":
+                            p = [
+                                np.exp(-streaming_exp * (n_stream - i))
+                                for i in range(n_stream)
+                            ]
+                            p = [(1 - streaming_weight) * q / sum(p) for q in p]
+                            p = [q + streaming_weight / (epoch + 1) for q in p]
+                        else:
+                            raise ValueError(
+                                "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
+                                streaming_inference,
+                            )
+                        p = [q / sum(p) for q in p]
+                        selection = np.random.choice(
+                            n_stream,
+                            size=streaming_size if streaming_size > 1 else None,
+                            p=p,
                         )
-                    xs_stream = xs[selection, ...]
-                    ws_stream = ws[selection, ...]
-                    if streaming_size <= 1:
-                        xs_stream = xs_stream.unsqueeze(dim=0)
-                        ws_stream = ws_stream.unsqueeze(dim=0)
-                    loss = svi.step(
-                        xs=xs_stream,
-                        ws=ws_stream,
-                        subsample=False,
-                    )
+                        if streaming_truncate > 0:
+                            selection = (
+                                [x + epoch + 1 - n_stream for x in selection]
+                                if streaming_size > 1
+                                else selection + epoch + 1 - n_stream
+                            )
+                        xs_stream = xs[selection, ...]
+                        ws_stream = ws[selection, ...]
+                        if streaming_size <= 1:
+                            xs_stream = xs_stream.unsqueeze(dim=0)
+                            ws_stream = ws_stream.unsqueeze(dim=0)
+                        loss = svi.step(
+                            xs=xs_stream,
+                            ws=ws_stream,
+                            subsample=False,
+                        )
                 else:
                     loss = svi.step(xs=xs, ws=ws, subsample=False)
                 model.eval()
