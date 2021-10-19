@@ -246,7 +246,7 @@ def train(  # noqa: C901
             opt.streaming_weight,
             opt.streaming_exp,
             opt.streaming_truncate,
-            opt.streaming_subepochs
+            opt.streaming_subepochs,
             opt.resume,
             opt.nosave,
             opt.entity,
