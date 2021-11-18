@@ -50,6 +50,8 @@ def parse_spatiotemporal(
         else:
             data = pd.read_csv(data, header=0)
             data = data.set_index(index)
+    if data.index.name is None:
+        data.index.names = ["index"]
     return data
 
 
