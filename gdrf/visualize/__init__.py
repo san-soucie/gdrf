@@ -73,11 +73,10 @@ def stackplot_1d(
     #     data = data[np.arange(len(data)) % n == 1]
     areas = []
     vdim = hv.Dimension("probability", label="Probability")
-    kdim = hv.Dimension(data.index.name, label=data.index.name)
     for c in data.columns:
         d = data[c]
         d.name = "probability"
-        a = hv.Area(d, label=str(c), kdims=kdim, vdims=vdim).opts(
+        a = hv.Area(d, label=str(c), vdims=vdim).opts(
             linewidth=0,
             color=hv.Cycle("tab20"),
             aspect=2,
