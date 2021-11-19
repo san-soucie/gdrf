@@ -121,6 +121,7 @@ def train(  # noqa: C901
     streaming_truncate: int = -1,
     streaming_size: int = 1,
     streaming_subepochs: int = 1,
+    streaming_batch_splits: int = -1,
     resume: Union[str, bool] = False,
     nosave: bool = False,
     entity: str = None,
@@ -163,6 +164,7 @@ def train(  # noqa: C901
     :param int streaming_truncate: Number of recent observations to consider, or -1 for all
     :param int streaming_size: Number of streaming samples to draw from the distribution given by `streaming_inference`
     :param int streaming_subepochs: Number of training steps per data point
+    :param int streaming_batch_splits: Number of batches to split dataset into when streaming, or `-1` for no splits
     :param Union[str,bool] resume: Resume most recent training
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
@@ -210,6 +212,7 @@ def train(  # noqa: C901
             streaming_exp,
             streaming_truncate,
             streaming_subepochs,
+            streaming_batch_splits,
             resume,
             nosave,
             entity,
@@ -247,6 +250,7 @@ def train(  # noqa: C901
             opt.streaming_exp,
             opt.streaming_truncate,
             opt.streaming_subepochs,
+            opt.streaming_batch_splits,
             opt.resume,
             opt.nosave,
             opt.entity,
@@ -258,6 +262,7 @@ def train(  # noqa: C901
         )
 
     streaming = streaming_inference != ""
+    streaming_batch = streaming and (streaming_batch_splits > 0)
 
     # Register actions
     for k in methods(loggers):
@@ -269,20 +274,7 @@ def train(  # noqa: C901
     check_requirements(requirements=FILE.parent / "requirements.txt", exclude=[])
 
     # Resume
-    if resume and not check_wandb_resume(resume):  # resume an interrupted run
-        ckpt = (
-            resume if isinstance(resume, str) else get_latest_run()
-        )  # specified or most recent path
-        assert os.path.isfile(ckpt), "ERROR: --resume checkpoint does not exist"
-        with open(Path(ckpt).parent.parent / "opt.yaml") as f:
-            assert os.path.isfile(Path(ckpt).parent.parent / "opt.yaml")
-            opt = yaml.safe_load(f)  # replace
-        opt["weights"], opt["resume"] = ckpt, True
-        weights = ckpt
-        resume = True
-        LOGGER.info(f"Resuming training from {ckpt}")
-    else:
-        data = check_file(data)
+    opt, weights, resume, data = maybe_resume(resume, weights, data)
 
     device = select_device(device)
 
@@ -334,12 +326,18 @@ def train(  # noqa: C901
     num_observation_categories = len(dataset.columns)
     n_data = len(index)
 
-    if streaming:
+    if streaming and not streaming_batch:
         LOGGER.info(
             "Streaming inference selected, settings training epochs to len(data) = %d",
             n_data,
         )
         epochs = n_data
+    elif streaming_batch:
+        LOGGER.info(
+            "Streaming batch inference selected, setting training epochs to streaming_batch_splits = %d",
+            streaming_batch_splits,
+        )
+        epochs = streaming_batch_splits
 
     # Kernel
     kernel_lengthscale = torch.tensor(kernel_lengthscale).to(device)
@@ -437,11 +435,14 @@ def train(  # noqa: C901
             for epoch in pbar:  # epoch
                 model.train()
                 if streaming:
-                    for epoch in range(streaming_subepochs):
+                    for subepoch in range(streaming_subepochs):
+                        effective_epoch = (
+                            epoch * n_data // epochs if streaming_batch else epoch
+                        )
                         n_stream = (
-                            min(epoch + 1, streaming_truncate)
+                            min(effective_epoch + 1, streaming_truncate)
                             if streaming_truncate > 0
-                            else epoch + 1
+                            else effective_epoch + 1
                         )
                         if streaming_inference == "uniform":
                             p = [1.0 for _ in range(n_stream)]
@@ -469,7 +470,7 @@ def train(  # noqa: C901
                                 for i in range(n_stream)
                             ]
                             p = [(1 - streaming_weight) * q / sum(p) for q in p]
-                            p = [q + streaming_weight / (epoch + 1) for q in p]
+                            p = [q + streaming_weight / (n_stream + 1) for q in p]
                         else:
                             raise ValueError(
                                 "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
@@ -559,6 +560,24 @@ def train(  # noqa: C901
 
         torch.cuda.empty_cache()
     return None
+
+
+def maybe_resume(resume, weights, data):
+    if resume and not check_wandb_resume(resume):  # resume an interrupted run
+        ckpt = (
+            resume if isinstance(resume, str) else get_latest_run()
+        )  # specified or most recent path
+        assert os.path.isfile(ckpt), "ERROR: --resume checkpoint does not exist"
+        with open(Path(ckpt).parent.parent / "opt.yaml") as f:
+            assert os.path.isfile(Path(ckpt).parent.parent / "opt.yaml")
+            opt = yaml.safe_load(f)  # replace
+        opt["weights"], opt["resume"] = ckpt, True
+        weights = ckpt
+        resume = True
+        LOGGER.info(f"Resuming training from {ckpt}")
+    else:
+        data = check_file(data)
+    return opt, weights, resume, data
 
 
 if __name__ == "__main__":
