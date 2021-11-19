@@ -274,7 +274,7 @@ def train(  # noqa: C901
     check_requirements(requirements=FILE.parent / "requirements.txt", exclude=[])
 
     # Resume
-    opt, weights, resume, data = maybe_resume(resume, weights, data)
+    opt, weights, resume, data = maybe_resume(resume, opt, weights, data)
 
     device = select_device(device)
 
@@ -562,7 +562,7 @@ def train(  # noqa: C901
     return None
 
 
-def maybe_resume(resume, weights, data):
+def maybe_resume(resume, opt, weights, data):
     if resume and not check_wandb_resume(resume):  # resume an interrupted run
         ckpt = (
             resume if isinstance(resume, str) else get_latest_run()
