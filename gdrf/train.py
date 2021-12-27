@@ -130,6 +130,7 @@ def train(  # noqa: C901
     artifact_alias: str = "latest",
     patience: int = 100,
     verbose: bool = True,
+    randomize_wt_matrix: bool = False,
 ):
     """
     Trains a GDRF
@@ -173,6 +174,7 @@ def train(  # noqa: C901
     :param str artifact_alias: version of dataset artifact to be used
     :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)
     :param bool verbose: Verbose
+    :param bool randomize_wt_matrix: Randomize the initial word-topic matrix
     """
     opt = locals()
     callbacks = Callbacks()
@@ -363,6 +365,7 @@ def train(  # noqa: C901
         inducing_init=inducing_initialization_method,
         maxjitter=max_jitter,
         jitter=jitter,
+        randomize_wt_matrix=randomize_wt_matrix,
     )
 
     # Optimizer
