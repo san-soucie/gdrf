@@ -12,6 +12,25 @@ from .topic_model import scale_decorator
 from .utils import jittercholesky
 
 
+def make_wt_matrix(
+    dirichlet_param: Union[float, torch.Tensor], K: int, device, randomize: bool = False
+) -> torch.Tensor:
+    if randomize:
+        return nn.PyroParam(
+            torch.randn_like(dirichlet_param.to(device)),
+            constraint=dist.constraints.stack(
+                [dist.constraints.simplex for _ in range(K)], dim=-2
+            ),
+        )
+    else:
+        return nn.PyroParam(
+            dirichlet_param.to(device),
+            constraint=dist.constraints.stack(
+                [dist.constraints.simplex for _ in range(K)], dim=-2
+            ),
+        )
+
+
 class GDRF(AbstractGDRF):
     def __init__(
         self,
@@ -28,6 +47,7 @@ class GDRF(AbstractGDRF):
         whiten: bool = False,
         jitter: float = 1e-8,
         maxjitter: int = 5,
+        randomize_wt_matrix: bool = False,
         **kwargs
     ):
         super().__init__(
@@ -49,11 +69,8 @@ class GDRF(AbstractGDRF):
             )
         self.xs = xs
         self.ws = ws
-        self._word_topic_matrix_map = nn.PyroParam(
-            self._dirichlet_param.to(self.device),
-            constraint=dist.constraints.stack(
-                [dist.constraints.simplex for _ in range(self._K)], dim=-2
-            ),
+        self._word_topic_matrix_map = make_wt_matrix(
+            self._dirichlet_param, self._K, self.device, randomize=randomize_wt_matrix
         )
         self._jitter = jitter
         self._maxjitter = maxjitter
