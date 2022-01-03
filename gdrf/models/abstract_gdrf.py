@@ -1,8 +1,9 @@
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import pyro
 import pyro.contrib.gp as gp
+import pyro.distributions as dist
 import pyro.nn as nn
 import torch
 
@@ -48,6 +49,32 @@ class AbstractGDRF(SpatioTemporalTopicModel):
             dirichlet_param = torch.tensor(dirichlet_param)
         self._dirichlet_param = validate_dirichlet_param(
             dirichlet_param, self._K, self._V, device=self.device
+        )
+
+    def make_wt_matrix(
+        self,
+        dirichlet_param: Union[float, torch.Tensor],
+        K: int,
+        device,
+        randomize: bool = False,
+        randomize_metric: Optional[
+            Callable[[torch.Tensor, SpatioTemporalTopicModel], float]
+        ] = None,
+        randomize_iters: int = 100,
+    ) -> torch.Tensor:
+        ret = dirichlet_param.to(device)
+        best = -1 if randomize_metric is None else randomize_metric(ret, self)
+        if randomize:
+            for i in range(max(1, min(randomize_iters, randomize_metric is not None))):
+                possible = torch.randn_like(dirichlet_param.to(device))
+                score = 0 if randomize_metric is None else randomize_metric(ret, self)
+                if score > best:
+                    ret = possible
+        return nn.PyroParam(
+            ret,
+            constraint=dist.constraints.stack(
+                [dist.constraints.simplex for _ in range(K)], dim=-2
+            ),
         )
 
     @abstractmethod

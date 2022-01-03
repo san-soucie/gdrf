@@ -30,6 +30,11 @@ class SparseGDRF(AbstractGDRF):
         whiten: bool = False,
         jitter: float = 1e-8,
         maxjitter: int = 5,
+        randomize_wt_matrix: bool = False,
+        randomize_metric: Optional[
+            Callable[[torch.Tensor, AbstractGDRF], float]
+        ] = None,
+        randomize_iters: int = 100,
         **kwargs,
     ):
         super().__init__(
@@ -81,12 +86,7 @@ class SparseGDRF(AbstractGDRF):
                 ),
             )
         )
-        self._word_topic_matrix_map = nn.PyroParam(
-            self._dirichlet_param.to(self.device),
-            constraint=dist.constraints.stack(
-                [dist.constraints.simplex for _ in range(self._K)], dim=-2
-            ),
-        )
+
         self._jitter = jitter
         self._maxjitter = maxjitter
         self._whiten = whiten
@@ -103,6 +103,15 @@ class SparseGDRF(AbstractGDRF):
         noise = torch.tensor(1.0) if noise is None else noise
         self.noise = nn.PyroParam(noise, constraint=dist.constraints.positive)
         self._sample_latent = True
+
+        self._word_topic_matrix_map = self.make_wt_matrix(
+            self._dirichlet_param,
+            self._K,
+            self.device,
+            randomize=randomize_wt_matrix,
+            randomize_metric=randomize_metric,
+            randomize_iters=randomize_iters,
+        )
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):
         if Xnew.dim() != self._inducing_points.dim():
