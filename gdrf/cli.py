@@ -1,9 +1,10 @@
 """Console script for gdrf."""
 
 import fire
+from train_script import train
+from visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
 
-from .train import train
-from .visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
+import gdrf
 
 
 def help():

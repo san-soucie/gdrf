@@ -126,6 +126,7 @@ def train(  # noqa: C901
     nosave: bool = False,
     entity: str = None,
     upload_dataset: bool = False,
+    visualize_results: bool = True,
     save_period: int = -1,
     artifact_alias: str = "latest",
     patience: int = 100,
@@ -170,6 +171,7 @@ def train(  # noqa: C901
     :param bool nosave: only save final checkpoint
     :param str entity: W&B entity
     :param bool upload_dataset: Upload dataset to W&B
+    :param bool visualize_results: Create visualizations of results
     :param int save_period: Log model after this many epochs
     :param str artifact_alias: version of dataset artifact to be used
     :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)
@@ -351,22 +353,27 @@ def train(  # noqa: C901
     kernel = kernel.to(device)
 
     # Model
-    model = GDRF_MODEL_DICT[model_type](
-        xs=xs,
-        ws=ws,
-        world=world,
-        kernel=kernel,
-        num_observation_categories=num_observation_categories,
-        device=device,
-        num_topic_categories=num_topics,
-        dirichlet_param=dirichlet_param,
-        n_points=num_inducing_points,
-        fixed_inducing_points=fixed_inducing_points,
-        inducing_init=inducing_initialization_method,
-        maxjitter=max_jitter,
-        jitter=jitter,
-        randomize_wt_matrix=randomize_wt_matrix,
-    )
+    kwargs = {
+        "xs": xs,
+        "ws": ws,
+        "world": world,
+        "kernel": kernel,
+        "num_observation_categories": num_observation_categories,
+        "device": device,
+        "num_topic_categories": num_topics,
+        "dirichlet_param": dirichlet_param,
+        "n_points": num_inducing_points,
+        "fixed_inducing_points": fixed_inducing_points,
+        "inducing_init": inducing_initialization_method,
+        "maxjitter": max_jitter,
+        "jitter": jitter,
+        "randomize_wt_matrix": randomize_wt_matrix,
+    }
+    if randomize_wt_matrix:
+        kwargs["randomize_metric"] = lambda wt, gdrf: (
+            1.0 / ((ws * (gdrf.topic_probs(xs) @ wt).log()).sum() / -ws.sum()).exp()
+        )
+    model = GDRF_MODEL_DICT[model_type](**kwargs)
 
     # Optimizer
 
@@ -557,7 +564,15 @@ def train(  # noqa: C901
                 except Exception as e:
                     LOGGER.info(f"Failed to strip optimizer from {i}. Error: {e}")
         callbacks.run(
-            "on_train_end", last, best, xs, ws, dataset.index, dataset.columns, epoch
+            "on_train_end",
+            last,
+            best,
+            xs,
+            ws,
+            dataset.index,
+            dataset.columns,
+            epoch,
+            visualize_results,
         )
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
 
