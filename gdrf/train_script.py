@@ -264,6 +264,8 @@ def train(  # noqa: C901
             opt.patience,
             opt.verbose,
         )
+    save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
+    loggers.save_dir = save_dir
 
     streaming = streaming_inference != ""
     streaming_batch = streaming and (streaming_batch_splits > 0)
