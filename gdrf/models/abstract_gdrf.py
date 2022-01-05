@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -9,6 +10,8 @@ import torch
 
 from .topic_model import SpatioTemporalTopicModel
 from .utils import validate_dirichlet_param
+
+LOGGER = logging.getLogger(__name__)
 
 
 def zero_mean(x):
@@ -62,12 +65,15 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         ] = None,
         randomize_iters: int = 100,
     ) -> torch.Tensor:
-        ret = dirichlet_param.to(device)
+        softmax = torch.nn.Softmax(dim=-2).float()
+        ret = softmax(dirichlet_param.to(device))
         best = -1 if randomize_metric is None else randomize_metric(ret, self)
         if randomize:
-            for i in range(max(1, min(randomize_iters, randomize_metric is not None))):
-                possible = torch.randn_like(dirichlet_param.to(device))
-                score = 0 if randomize_metric is None else randomize_metric(ret, self)
+            for i in range(1 if randomize_metric is None else randomize_iters):
+                possible = softmax(torch.randn_like(ret))
+                score = (
+                    0 if randomize_metric is None else randomize_metric(possible, self)
+                )
                 if score > best:
                     ret = possible
         return nn.PyroParam(

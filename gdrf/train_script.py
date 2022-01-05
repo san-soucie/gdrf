@@ -132,6 +132,7 @@ def train(  # noqa: C901
     patience: int = 100,
     verbose: bool = True,
     randomize_wt_matrix: bool = False,
+    savedir: str = ".",
 ):
     """
     Trains a GDRF
@@ -177,10 +178,11 @@ def train(  # noqa: C901
     :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)
     :param bool verbose: Verbose
     :param bool randomize_wt_matrix: Randomize the initial word-topic matrix
+    :param str savedir: Directory for saving weights
     """
     opt = locals()
     callbacks = Callbacks()
-    save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
+    save_dir = Path(savedir) / increment_path(Path(project) / name, exist_ok=exist_ok)
     data_dict = None
 
     loggers = Loggers(save_dir, weights, opt, LOGGER)  # loggers instance
@@ -225,6 +227,7 @@ def train(  # noqa: C901
             artifact_alias,
             patience,
             verbose,
+            savedir,
         ) = (
             opt.project,
             opt.name,
@@ -263,8 +266,9 @@ def train(  # noqa: C901
             opt.artifact_alias,
             opt.patience,
             opt.verbose,
+            opt.savedir,
         )
-    save_dir = Path(str(increment_path(Path(project) / name, exist_ok=exist_ok)))
+    save_dir = Path(savedir) / increment_path(Path(project) / name, exist_ok=exist_ok)
     loggers.save_dir = save_dir
 
     streaming = streaming_inference != ""
@@ -290,6 +294,10 @@ def train(  # noqa: C901
     w = save_dir / "weights"  # weights dir
     w.mkdir(parents=True, exist_ok=True)  # make dir
     last, best = w / "last.pt", w / "best.pt"
+    if not nosave:
+        LOGGER.info(
+            "Saving weights to %s (best score) and %s (most recent)", best, last
+        )
 
     # Hyperparameters
     LOGGER.info(colorstr("config: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
@@ -371,10 +379,10 @@ def train(  # noqa: C901
         "jitter": jitter,
         "randomize_wt_matrix": randomize_wt_matrix,
     }
-    if randomize_wt_matrix:
-        kwargs["randomize_metric"] = lambda wt, gdrf: (
-            1.0 / ((ws * (gdrf.topic_probs(xs) @ wt).log()).sum() / -ws.sum()).exp()
-        )
+    # if randomize_wt_matrix:
+    #     kwargs["randomize_metric"] = lambda wt, gdrf: (
+    #         1.0 / ((ws * (gdrf.topic_probs(xs) @ wt).log()).sum() / -ws.sum()).exp()
+    #     )
     model = GDRF_MODEL_DICT[model_type](**kwargs)
 
     # Optimizer
