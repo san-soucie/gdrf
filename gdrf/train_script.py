@@ -185,15 +185,11 @@ def train(  # noqa: C901
     data_dict = None
     loggers = Loggers(None, weights, opt, LOGGER)  # loggers instance
     if loggers.wandb:
-        wandb.config.update(
-            {"project": wandb.run.project, "name": wandb.run.name},
-            allow_val_change=True,
-        )
         data_dict = loggers.wandb.data_dict
         opt = wandb.config
 
     save_dir = Path(savedir) / increment_path(
-        Path(wandb.config.project) / wandb.config.name, exist_ok=wandb.config.exist_ok
+        Path(wandb.run.project) / wandb.run.name, exist_ok=wandb.config.exist_ok
     )
     loggers.save_dir = save_dir
 
