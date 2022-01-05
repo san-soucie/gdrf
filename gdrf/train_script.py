@@ -182,111 +182,39 @@ def train(  # noqa: C901
     """
     opt = locals()
     callbacks = Callbacks()
-    save_dir = Path(savedir) / increment_path(Path(project) / name, exist_ok=exist_ok)
     data_dict = None
-
-    loggers = Loggers(save_dir, weights, opt, LOGGER)  # loggers instance
+    loggers = Loggers(None, weights, opt, LOGGER)  # loggers instance
     if loggers.wandb:
+        wandb.config.update(
+            {"project": wandb.run.project, "name": wandb.run.name},
+            allow_val_change=True,
+        )
         data_dict = loggers.wandb.data_dict
         opt = wandb.config
-        (
-            project,
-            name,
-            device,
-            exist_ok,
-            weights,
-            data,
-            dimensions,
-            epochs,
-            num_topics,
-            dirichlet_param,
-            num_inducing_points,
-            fixed_inducing_points,
-            inducing_initialization_method,
-            jitter,
-            max_jitter,
-            kernel_type,
-            kernel_lengthscale,
-            kernel_variance,
-            optimizer_type,
-            optimizer_lr,
-            objective_type,
-            objective_num_particles,
-            objective_renyi_alpha,
-            streaming_inference,
-            streaming_weight,
-            streaming_exp,
-            streaming_truncate,
-            streaming_subepochs,
-            streaming_batch_splits,
-            resume,
-            nosave,
-            entity,
-            upload_dataset,
-            save_period,
-            artifact_alias,
-            patience,
-            verbose,
-            savedir,
-        ) = (
-            opt.project,
-            opt.name,
-            opt.device,
-            opt.exist_ok,
-            opt.weights,
-            opt.data,
-            opt.dimensions,
-            opt.epochs,
-            opt.num_topics,
-            opt.dirichlet_param,
-            opt.num_inducing_points,
-            opt.fixed_inducing_points,
-            opt.inducing_initialization_method,
-            opt.jitter,
-            opt.max_jitter,
-            opt.kernel_type,
-            opt.kernel_lengthscale,
-            opt.kernel_variance,
-            opt.optimizer_type,
-            opt.optimizer_lr,
-            opt.objective_type,
-            opt.objective_num_particles,
-            opt.objective_renyi_alpha,
-            opt.streaming_inference,
-            opt.streaming_weight,
-            opt.streaming_exp,
-            opt.streaming_truncate,
-            opt.streaming_subepochs,
-            opt.streaming_batch_splits,
-            opt.resume,
-            opt.nosave,
-            opt.entity,
-            opt.upload_dataset,
-            opt.save_period,
-            opt.artifact_alias,
-            opt.patience,
-            opt.verbose,
-            opt.savedir,
-        )
-    save_dir = Path(savedir) / increment_path(Path(project) / name, exist_ok=exist_ok)
+
+    save_dir = Path(savedir) / increment_path(
+        Path(wandb.config.project) / wandb.config.name, exist_ok=wandb.config.exist_ok
+    )
     loggers.save_dir = save_dir
 
-    streaming = streaming_inference != ""
-    streaming_batch = streaming and (streaming_batch_splits > 0)
+    streaming = wandb.config.streaming_inference != ""
+    streaming_batch = streaming and (wandb.config.streaming_batch_splits > 0)
 
     # Register actions
     for k in methods(loggers):
         callbacks.register_action(k, callback=getattr(loggers, k))
 
-    set_logging(verbose=verbose)
-    print(colorstr("train: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
+    set_logging(verbose=wandb.config.verbose)
+    print(colorstr("train: ") + ", ".join(f"{k}={v}" for k, v in wandb.config.items()))
     check_git_status()
     check_requirements(requirements=FILE.parent / "requirements.txt", exclude=[])
 
     # Resume
-    opt, weights, resume, data = maybe_resume(resume, opt, weights, data)
+    opt, weights, resume, data = maybe_resume(
+        wandb.config.resume, wandb.config, wandb.config.weights, wandb.config.data
+    )
 
-    device = select_device(device)
+    device = select_device(wandb.config.device)
 
     pretrained = weights.endswith(".pt")
 
@@ -294,17 +222,16 @@ def train(  # noqa: C901
     w = save_dir / "weights"  # weights dir
     w.mkdir(parents=True, exist_ok=True)  # make dir
     last, best = w / "last.pt", w / "best.pt"
-    if not nosave:
+    if not wandb.config.nosave:
         LOGGER.info(
             "Saving weights to %s (best score) and %s (most recent)", best, last
         )
 
     # Hyperparameters
-    LOGGER.info(colorstr("config: ") + ", ".join(f"{k}={v}" for k, v in opt.items()))
 
     # Save run settings
     with open(save_dir / "opt.yaml", "w") as f:
-        yaml.safe_dump(opt.as_dict(), f, sort_keys=False)
+        yaml.safe_dump(wandb.config.as_dict(), f, sort_keys=False)
     data_dict = None
 
     # Loggers
@@ -312,14 +239,14 @@ def train(  # noqa: C901
     # Config
     cuda = device != "cpu"
     init_seeds(1)
-    data_dict = data_dict or check_dataset(data)  # check if None
+    data_dict = data_dict or check_dataset(wandb.config.data)  # check if None
     train_path = data_dict["train"]
 
     # Dataset
     dataset = (
         pd.read_csv(
-            filepath_or_buffer=data,
-            index_col=list(range(dimensions)),
+            filepath_or_buffer=wandb.config.data,
+            index_col=list(range(wandb.config.dimensions)),
             header=0,
             parse_dates=True,
         )
@@ -327,11 +254,11 @@ def train(  # noqa: C901
         .astype(int)
     )
     index = dataset.index
-    index = index.values if dimensions == 1 else np.array(index.to_list())
-    index = index - index.min(axis=-dimensions, keepdims=True)
-    index = index / index.max(axis=-dimensions, keepdims=True)
+    index = index.values if wandb.config.dimensions == 1 else np.array(index.to_list())
+    index = index - index.min(axis=-wandb.config.dimensions, keepdims=True)
+    index = index / index.max(axis=-wandb.config.dimensions, keepdims=True)
     xs = torch.from_numpy(index).float().to(device)
-    if dimensions == 1:
+    if wandb.config.dimensions == 1:
         xs = xs.unsqueeze(-1)
     ws = torch.from_numpy(dataset.values).int().to(device)
     min_xs = xs.min(dim=0).values.detach().cpu().numpy().tolist()
@@ -340,6 +267,7 @@ def train(  # noqa: C901
     num_observation_categories = len(dataset.columns)
     n_data = len(index)
 
+    epochs = wandb.config.epochs
     if streaming and not streaming_batch:
         LOGGER.info(
             "Streaming inference selected, settings training epochs to len(data) = %d",
@@ -349,16 +277,18 @@ def train(  # noqa: C901
     elif streaming_batch:
         LOGGER.info(
             "Streaming batch inference selected, setting training epochs to streaming_batch_splits = %d",
-            streaming_batch_splits,
+            wandb.config.streaming_batch_splits,
         )
-        epochs = streaming_batch_splits
+        epochs = wandb.config.streaming_batch_splits
 
     # Kernel
-    kernel_lengthscale = torch.tensor(kernel_lengthscale).to(device)
-    kernel_variance = torch.tensor(kernel_variance).to(device)
+    kernel_lengthscale = torch.tensor(wandb.config.kernel_lengthscale).to(device)
+    kernel_variance = torch.tensor(wandb.config.kernel_variance).to(device)
 
-    kernel = KERNEL_DICT[kernel_type](
-        input_dim=dimensions, lengthscale=kernel_lengthscale, variance=kernel_variance
+    kernel = KERNEL_DICT[wandb.config.kernel_type](
+        input_dim=wandb.config.dimensions,
+        lengthscale=kernel_lengthscale,
+        variance=kernel_variance,
     )
     kernel = kernel.to(device)
 
@@ -370,30 +300,32 @@ def train(  # noqa: C901
         "kernel": kernel,
         "num_observation_categories": num_observation_categories,
         "device": device,
-        "num_topic_categories": num_topics,
-        "dirichlet_param": dirichlet_param,
-        "n_points": num_inducing_points,
-        "fixed_inducing_points": fixed_inducing_points,
-        "inducing_init": inducing_initialization_method,
-        "maxjitter": max_jitter,
-        "jitter": jitter,
-        "randomize_wt_matrix": randomize_wt_matrix,
+        "num_topic_categories": wandb.config.num_topics,
+        "dirichlet_param": wandb.config.dirichlet_param,
+        "n_points": wandb.config.num_inducing_points,
+        "fixed_inducing_points": wandb.config.fixed_inducing_points,
+        "inducing_init": wandb.config.inducing_initialization_method,
+        "maxjitter": wandb.config.max_jitter,
+        "jitter": wandb.config.jitter,
+        "randomize_wt_matrix": wandb.config.randomize_wt_matrix,
     }
     # if randomize_wt_matrix:
     #     kwargs["randomize_metric"] = lambda wt, gdrf: (
     #         1.0 / ((ws * (gdrf.topic_probs(xs) @ wt).log()).sum() / -ws.sum()).exp()
     #     )
-    model = GDRF_MODEL_DICT[model_type](**kwargs)
+    model = GDRF_MODEL_DICT[wandb.config.model_type](**kwargs)
 
     # Optimizer
 
-    optimizer = OPTIMIZER_DICT[optimizer_type]({"lr": optimizer_lr})
+    optimizer = OPTIMIZER_DICT[wandb.config.optimizer_type](
+        {"lr": wandb.config.optimizer_lr}
+    )
 
     # Variational Objective
-    objective_hyperparameters = {"num_particles": objective_num_particles}
-    if objective_type == "renyielbo":
-        objective_hyperparameters["alpha"] = objective_renyi_alpha
-    objective = OBJECTIVE_DICT[objective_type](
+    objective_hyperparameters = {"num_particles": wandb.config.objective_num_particles}
+    if wandb.config.objective_type == "renyielbo":
+        objective_hyperparameters["alpha"] = wandb.config.objective_renyi_alpha
+    objective = OBJECTIVE_DICT[wandb.config.objective_type](
         vectorize_particles=True, **objective_hyperparameters
     )
     start_epoch, best_fitness = 0, float("-inf")
@@ -413,7 +345,7 @@ def train(  # noqa: C901
 
         # Epochs
         start_epoch = ckpt["epoch"] + 1
-        if resume:
+        if wandb.config.resume:
             assert (
                 start_epoch > 0
             ), f"{weights} training to {epochs} epochs is finished, nothing to resume."
@@ -455,57 +387,65 @@ def train(  # noqa: C901
             for epoch in pbar:  # epoch
                 model.train()
                 if streaming:
-                    for subepoch in range(streaming_subepochs):
+                    for subepoch in range(wandb.config.streaming_subepochs):
                         effective_epoch = (
                             epoch * n_data // epochs if streaming_batch else epoch
                         )
                         n_stream = (
-                            min(effective_epoch + 1, streaming_truncate)
-                            if streaming_truncate > 0
+                            min(effective_epoch + 1, wandb.config.streaming_truncate)
+                            if wandb.config.streaming_truncate > 0
                             else effective_epoch + 1
                         )
-                        if streaming_inference == "uniform":
+                        if wandb.config.streaming_inference == "uniform":
                             p = [1.0 for _ in range(n_stream)]
-                        elif streaming_inference == "now":
+                        elif wandb.config.streaming_inference == "now":
                             p = [0.0 for _ in range(n_stream)]
                             p[-1] = 1.0
-                        elif streaming_inference == "exp":
+                        elif wandb.config.streaming_inference == "exp":
                             p = [
-                                np.exp(-streaming_exp * (n_stream - i))
+                                np.exp(-wandb.config.streaming_exp * (n_stream - i))
                                 for i in range(n_stream)
                             ]
-                        elif streaming_inference == "uniform_now":
+                        elif wandb.config.streaming_inference == "uniform_now":
                             p = [streaming_weight / n_stream for _ in range(n_stream)]
                             p[-1] += 1 - streaming_weight
-                        elif streaming_inference == "exp_now":
+                        elif wandb.config.streaming_inference == "exp_now":
                             p = [
-                                np.exp(-streaming_exp * (n_stream - i))
+                                np.exp(-wandb.config.streaming_exp * (n_stream - i))
                                 for i in range(n_stream)
                             ]
                             p = [streaming_weight * q / sum(p) for q in p]
-                            p[-1] += 1 - streaming_weight
-                        elif streaming_inference == "uniform_exp":
+                            p[-1] += 1 - wandb.config.streaming_weight
+                        elif wandb.config.streaming_inference == "uniform_exp":
                             p = [
-                                np.exp(-streaming_exp * (n_stream - i))
+                                np.exp(-wandb.config.streaming_exp * (n_stream - i))
                                 for i in range(n_stream)
                             ]
-                            p = [(1 - streaming_weight) * q / sum(p) for q in p]
-                            p = [q + streaming_weight / (n_stream + 1) for q in p]
+                            p = [
+                                (1 - wandb.config.streaming_weight) * q / sum(p)
+                                for q in p
+                            ]
+                            p = [
+                                q + wandb.config.streaming_weight / (n_stream + 1)
+                                for q in p
+                            ]
                         else:
                             raise ValueError(
                                 "streaming_inference should be one of 'uniform', 'now', 'exp', 'uniform_now, 'exp_now', or 'uniform_exp'; you passed %s",
-                                streaming_inference,
+                                wandb.config.streaming_inference,
                             )
                         p = [q / sum(p) for q in p]
                         selection = np.random.choice(
                             n_stream,
-                            size=streaming_size if streaming_size > 1 else None,
+                            size=wandb.config.streaming_size
+                            if wandb.config.streaming_size > 1
+                            else None,
                             p=p,
                         )
-                        if streaming_truncate > 0:
+                        if wandb.config.streaming_truncate > 0:
                             selection = (
                                 [x + epoch + 1 - n_stream for x in selection]
-                                if streaming_size > 1
+                                if wandb.config.streaming_size > 1
                                 else selection + epoch + 1 - n_stream
                             )
                         xs_stream = xs[selection, ...]
@@ -542,7 +482,7 @@ def train(  # noqa: C901
                 final_epoch = (epoch + 1 == epochs) or (
                     stopper.possible_stop and not streaming
                 )
-                if (not nosave) or final_epoch:
+                if (not wandb.config.nosave) or final_epoch:
                     ckpt = {
                         "epoch": epoch,
                         "best_fitness": best_fitness,
