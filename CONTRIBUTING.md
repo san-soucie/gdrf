@@ -111,9 +111,14 @@ Make sure all your changes are committed (including an entry in HISTORY.md).
 Then run:
 
 ```
-$ poetry patch # possible: major / minor / patch
-$ git push
-$ git push --tags
+$ checkout release
+$ git pull origin master
+$ # Edit HISTORY.md
+$ poetry version patch # possible: major / minor / patch
+$ git commit -m "preparing for release $VERSION"
+$ tox # test the release
+$ git tag $VERSION
+$ git push --follow-tags
 ```
 
-Travis will then deploy to PyPI if tests pass.
+Github CI will then deploy to PyPI if tests pass.
