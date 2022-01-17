@@ -20,3 +20,7 @@
 * Streaming truncation and sub-epoch options
 * Optional word-topic matrix randomized initialization
 * Reduced Wandb artifact logging
+
+## 0.1.4 (2022-01-17)
+
+* Python 3.10 support
