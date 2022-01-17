@@ -10,7 +10,7 @@
       
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.2, mkdocs-material-6.2.8">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-6.2.8">
     
     
       
@@ -637,15 +637,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gdrf.train" class="md-nav__link">
-    train
+  <a href="#gdrf.train_script" class="md-nav__link">
+    train_script
   </a>
   
-    <nav class="md-nav" aria-label="train">
+    <nav class="md-nav" aria-label="train_script">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gdrf.train.train" class="md-nav__link">
+  <a href="#gdrf.train_script.train" class="md-nav__link">
     train()
   </a>
   
@@ -1216,15 +1216,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gdrf.train" class="md-nav__link">
-    train
+  <a href="#gdrf.train_script" class="md-nav__link">
+    train_script
   </a>
   
-    <nav class="md-nav" aria-label="train">
+    <nav class="md-nav" aria-label="train_script">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gdrf.train.train" class="md-nav__link">
+  <a href="#gdrf.train_script.train" class="md-nav__link">
     train()
   </a>
   
@@ -1567,6 +1567,7 @@
 
 
 
+
   <div class="doc doc-object doc-module">
 
 
@@ -1709,7 +1710,7 @@ Performs backward on the latter. Num_particle many samples are used to form the 
         <span class="n">surrogate_loss_particle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fn</span><span class="p">(</span>
             <span class="n">model_trace</span><span class="p">,</span> <span class="n">guide_trace</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span>
         <span class="p">)</span>
-        <span class="n">loss_particle</span> <span class="o">=</span> <span class="n">surrogate_loss_particle</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">loss_particle</span> <span class="o">=</span> <span class="n">surrogate_loss_particle</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">is_identically_zero</span><span class="p">(</span><span class="n">loss_particle</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">tensor_holder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1754,7 +1755,7 @@ Performs backward on the latter. Num_particle many samples are used to form the 
             <span class="n">surrogate_loss_particles</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_particles</span>
         <span class="p">)</span>
         <span class="n">surrogate_divergence</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">divergence</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">divergence</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
     <span class="n">warn_if_nan</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">loss</span>
 </code></pre></div>
@@ -1930,7 +1931,7 @@ Performs backward on the latter. Num_particle many samples are used to form the 
         <span class="n">surrogate_loss_particle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fn</span><span class="p">(</span>
             <span class="n">model_trace</span><span class="p">,</span> <span class="n">guide_trace</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span>
         <span class="p">)</span>
-        <span class="n">loss_particle</span> <span class="o">=</span> <span class="n">surrogate_loss_particle</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">loss_particle</span> <span class="o">=</span> <span class="n">surrogate_loss_particle</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">is_identically_zero</span><span class="p">(</span><span class="n">loss_particle</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">tensor_holder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1971,7 +1972,7 @@ Performs backward on the latter. Num_particle many samples are used to form the 
     <span class="p">):</span>
         <span class="n">surrogate_loss_val</span> <span class="o">=</span> <span class="o">-</span><span class="n">surrogate_loss_particles</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_particles</span>
         <span class="n">surrogate_loss_val</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">loss_val</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">loss_val</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
     <span class="n">warn_if_nan</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">loss</span>
 </code></pre></div>
@@ -2767,12 +2768,12 @@ At each pixel, a random number of observations, uniformly distributed between <c
 
 
 
-<h2 id="gdrf.train" class="doc doc-heading">
-        <code>train</code>
+<h2 id="gdrf.train_script" class="doc doc-heading">
+        <code>train_script</code>
 
 
 
-<a href="#gdrf.train" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#gdrf.train_script" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents ">
 
@@ -2799,15 +2800,16 @@ At each pixel, a random number of observations, uniformly distributed between <c
 
 
 
+
   <div class="doc doc-object doc-function">
 
 
 
-<h3 id="gdrf.train.train" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="s1">&#39;wandb/mvco&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mvco_adamax_grid&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="s1">&#39;data/data.csv&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s1">&#39;sparsemultinomialgdrf&#39;</span><span class="p">,</span> <span class="n">num_topics</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dirichlet_param</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">num_inducing_points</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">fixed_inducing_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inducing_initialization_method</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span> <span class="n">max_jitter</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_type</span><span class="o">=</span><span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">kernel_lengthscale</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">kernel_variance</span><span class="o">=</span><span class="mf">25.0</span><span class="p">,</span> <span class="n">optimizer_type</span><span class="o">=</span><span class="s1">&#39;adamw&#39;</span><span class="p">,</span> <span class="n">optimizer_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">objective_type</span><span class="o">=</span><span class="s1">&#39;graphelbo&#39;</span><span class="p">,</span> <span class="n">objective_num_particles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">objective_renyi_alpha</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nosave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upload_dataset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_period</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">artifact_alias</span><span class="o">=</span><span class="s1">&#39;latest&#39;</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<h3 id="gdrf.train_script.train" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">train</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="s1">&#39;wandb/mvco&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mvco_adamax_grid&#39;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="s1">&#39;data/data.csv&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3000</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="s1">&#39;sparsemultinomialgdrf&#39;</span><span class="p">,</span> <span class="n">num_topics</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dirichlet_param</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">num_inducing_points</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">fixed_inducing_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inducing_initialization_method</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">jitter</span><span class="o">=</span><span class="mf">1e-08</span><span class="p">,</span> <span class="n">max_jitter</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">kernel_type</span><span class="o">=</span><span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">kernel_lengthscale</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">kernel_variance</span><span class="o">=</span><span class="mf">25.0</span><span class="p">,</span> <span class="n">optimizer_type</span><span class="o">=</span><span class="s1">&#39;adamw&#39;</span><span class="p">,</span> <span class="n">optimizer_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">objective_type</span><span class="o">=</span><span class="s1">&#39;graphelbo&#39;</span><span class="p">,</span> <span class="n">objective_num_particles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">objective_renyi_alpha</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">streaming_inference</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">streaming_weight</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">streaming_exp</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">streaming_truncate</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">streaming_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">streaming_subepochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">streaming_batch_splits</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nosave</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upload_dataset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">visualize_results</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_period</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">artifact_alias</span><span class="o">=</span><span class="s1">&#39;latest&#39;</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">randomize_wt_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">savedir</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">)</span></code>
 
 
-<a href="#gdrf.train.train" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#gdrf.train_script.train" class="headerlink" title="Permanent link">&para;</a></h3>
 
     <div class="doc doc-contents ">
 
@@ -2836,17 +2838,27 @@ At each pixel, a random number of observations, uniformly distributed between <c
 :param str objective_type: 'elbo', 'graphelbo', or 'renyielbo'
 :param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations
 :param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type
+:param str streaming_inference: '', 'uniform', 'exp', 'now', 'uniform_now', 'uniform_exp', 'exp_now'
+:param float streaming_weight: Weight to assign first distribution in combination streaming inference. 0.0-1.0
+:param float streaming_exp: Streaming inference exp exponent. must be positive
+:param int streaming_truncate: Number of recent observations to consider, or -1 for all
+:param int streaming_size: Number of streaming samples to draw from the distribution given by <code>streaming_inference</code>
+:param int streaming_subepochs: Number of training steps per data point
+:param int streaming_batch_splits: Number of batches to split dataset into when streaming, or <code>-1</code> for no splits
 :param Union[str,bool] resume: Resume most recent training
 :param bool nosave: only save final checkpoint
 :param str entity: W&amp;B entity
 :param bool upload_dataset: Upload dataset to W&amp;B
+:param bool visualize_results: Create visualizations of results
 :param int save_period: Log model after this many epochs
 :param str artifact_alias: version of dataset artifact to be used
 :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)
-:param bool verbose: Verbose</p>
+:param bool verbose: Verbose
+:param bool randomize_wt_matrix: Randomize the initial word-topic matrix
+:param str savedir: Directory for saving weights</p>
 
         <details class="quote">
-          <summary>Source code in <code>gdrf/train.py</code></summary>
+          <summary>Source code in <code>gdrf/train_script.py</code></summary>
           <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">train</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">project</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wandb/mvco&quot;</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mvco_adamax_grid&quot;</span><span class="p">,</span>
@@ -2872,14 +2884,24 @@ At each pixel, a random number of observations, uniformly distributed between <c
     <span class="n">objective_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;graphelbo&quot;</span><span class="p">,</span>
     <span class="n">objective_num_particles</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">objective_renyi_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">streaming_inference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">streaming_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">streaming_exp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">streaming_truncate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">streaming_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">streaming_subepochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">streaming_batch_splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">resume</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">nosave</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">entity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">upload_dataset</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">visualize_results</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">save_period</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">artifact_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;latest&quot;</span><span class="p">,</span>
     <span class="n">patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">randomize_wt_matrix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Trains a GDRF</span>
@@ -2908,116 +2930,56 @@ At each pixel, a random number of observations, uniformly distributed between <c
 <span class="sd">    :param str objective_type: &#39;elbo&#39;, &#39;graphelbo&#39;, or &#39;renyielbo&#39;</span>
 <span class="sd">    :param int objective_num_particles: Number of particles (i.e. latent samples) in ELBO calculations</span>
 <span class="sd">    :param float objective_renyi_alpha: Renyi alpha. Only valid for renyi objective type</span>
+<span class="sd">    :param str streaming_inference: &#39;&#39;, &#39;uniform&#39;, &#39;exp&#39;, &#39;now&#39;, &#39;uniform_now&#39;, &#39;uniform_exp&#39;, &#39;exp_now&#39;</span>
+<span class="sd">    :param float streaming_weight: Weight to assign first distribution in combination streaming inference. 0.0-1.0</span>
+<span class="sd">    :param float streaming_exp: Streaming inference exp exponent. must be positive</span>
+<span class="sd">    :param int streaming_truncate: Number of recent observations to consider, or -1 for all</span>
+<span class="sd">    :param int streaming_size: Number of streaming samples to draw from the distribution given by `streaming_inference`</span>
+<span class="sd">    :param int streaming_subepochs: Number of training steps per data point</span>
+<span class="sd">    :param int streaming_batch_splits: Number of batches to split dataset into when streaming, or `-1` for no splits</span>
 <span class="sd">    :param Union[str,bool] resume: Resume most recent training</span>
 <span class="sd">    :param bool nosave: only save final checkpoint</span>
 <span class="sd">    :param str entity: W&amp;B entity</span>
 <span class="sd">    :param bool upload_dataset: Upload dataset to W&amp;B</span>
+<span class="sd">    :param bool visualize_results: Create visualizations of results</span>
 <span class="sd">    :param int save_period: Log model after this many epochs</span>
 <span class="sd">    :param str artifact_alias: version of dataset artifact to be used</span>
 <span class="sd">    :param int patience: EarlyStopping Patience (number of epochs without improvement before early stopping)</span>
 <span class="sd">    :param bool verbose: Verbose</span>
+<span class="sd">    :param bool randomize_wt_matrix: Randomize the initial word-topic matrix</span>
+<span class="sd">    :param str savedir: Directory for saving weights</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">opt</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
     <span class="n">callbacks</span> <span class="o">=</span> <span class="n">Callbacks</span><span class="p">()</span>
-    <span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">increment_path</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="o">/</span> <span class="n">name</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="n">exist_ok</span><span class="p">)))</span>
     <span class="n">data_dict</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="n">loggers</span> <span class="o">=</span> <span class="n">Loggers</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">LOGGER</span><span class="p">)</span>  <span class="c1"># loggers instance</span>
+    <span class="n">loggers</span> <span class="o">=</span> <span class="n">Loggers</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">LOGGER</span><span class="p">)</span>  <span class="c1"># loggers instance</span>
     <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="p">:</span>
         <span class="n">data_dict</span> <span class="o">=</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">data_dict</span>
-        <span class="n">opt</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-        <span class="p">(</span>
-            <span class="n">project</span><span class="p">,</span>
-            <span class="n">name</span><span class="p">,</span>
-            <span class="n">device</span><span class="p">,</span>
-            <span class="n">exist_ok</span><span class="p">,</span>
-            <span class="n">weights</span><span class="p">,</span>
-            <span class="n">data</span><span class="p">,</span>
-            <span class="n">dimensions</span><span class="p">,</span>
-            <span class="n">epochs</span><span class="p">,</span>
-            <span class="n">num_topics</span><span class="p">,</span>
-            <span class="n">dirichlet_param</span><span class="p">,</span>
-            <span class="n">num_inducing_points</span><span class="p">,</span>
-            <span class="n">fixed_inducing_points</span><span class="p">,</span>
-            <span class="n">inducing_initialization_method</span><span class="p">,</span>
-            <span class="n">jitter</span><span class="p">,</span>
-            <span class="n">max_jitter</span><span class="p">,</span>
-            <span class="n">kernel_type</span><span class="p">,</span>
-            <span class="n">kernel_lengthscale</span><span class="p">,</span>
-            <span class="n">kernel_variance</span><span class="p">,</span>
-            <span class="n">optimizer_type</span><span class="p">,</span>
-            <span class="n">optimizer_lr</span><span class="p">,</span>
-            <span class="n">objective_type</span><span class="p">,</span>
-            <span class="n">objective_num_particles</span><span class="p">,</span>
-            <span class="n">objective_renyi_alpha</span><span class="p">,</span>
-            <span class="n">resume</span><span class="p">,</span>
-            <span class="n">nosave</span><span class="p">,</span>
-            <span class="n">entity</span><span class="p">,</span>
-            <span class="n">upload_dataset</span><span class="p">,</span>
-            <span class="n">save_period</span><span class="p">,</span>
-            <span class="n">artifact_alias</span><span class="p">,</span>
-            <span class="n">patience</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">exist_ok</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">num_topics</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">dirichlet_param</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">num_inducing_points</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">fixed_inducing_points</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">inducing_initialization_method</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">jitter</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">max_jitter</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_type</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_lengthscale</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">kernel_variance</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">optimizer_type</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">optimizer_lr</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">objective_type</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">objective_num_particles</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">objective_renyi_alpha</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">resume</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">nosave</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">entity</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">upload_dataset</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">save_period</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">artifact_alias</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">patience</span><span class="p">,</span>
-            <span class="n">opt</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span>
 
-        <span class="c1"># Register actions</span>
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">savedir</span><span class="p">)</span> <span class="o">/</span> <span class="n">increment_path</span><span class="p">(</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">project</span><span class="p">)</span> <span class="o">/</span> <span class="n">wandb</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">exist_ok</span>
+    <span class="p">)</span>
+    <span class="n">loggers</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">save_dir</span>
+
+    <span class="n">streaming</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">streaming_batch</span> <span class="o">=</span> <span class="n">streaming</span> <span class="ow">and</span> <span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_batch_splits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Register actions</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">(</span><span class="n">loggers</span><span class="p">):</span>
         <span class="n">callbacks</span><span class="o">.</span><span class="n">register_action</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">loggers</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
 
-    <span class="n">set_logging</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;train: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">set_logging</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;train: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
     <span class="n">check_git_status</span><span class="p">()</span>
     <span class="n">check_requirements</span><span class="p">(</span><span class="n">requirements</span><span class="o">=</span><span class="n">FILE</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;requirements.txt&quot;</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">[])</span>
 
     <span class="c1"># Resume</span>
-    <span class="k">if</span> <span class="n">resume</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">check_wandb_resume</span><span class="p">(</span><span class="n">resume</span><span class="p">):</span>  <span class="c1"># resume an interrupted run</span>
-        <span class="n">ckpt</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">resume</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">resume</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">get_latest_run</span><span class="p">()</span>
-        <span class="p">)</span>  <span class="c1"># specified or most recent path</span>
-        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">ckpt</span><span class="p">),</span> <span class="s2">&quot;ERROR: --resume checkpoint does not exist&quot;</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">ckpt</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">)</span>
-            <span class="n">opt</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># replace</span>
-        <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">],</span> <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;resume&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ckpt</span><span class="p">,</span> <span class="kc">True</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="n">ckpt</span>
-        <span class="n">resume</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resuming training from </span><span class="si">{</span><span class="n">ckpt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">check_file</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">opt</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">resume</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">maybe_resume</span><span class="p">(</span>
+        <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">resume</span><span class="p">,</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">data</span>
+    <span class="p">)</span>
 
-    <span class="n">device</span> <span class="o">=</span> <span class="n">select_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">select_device</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="n">pretrained</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
 
@@ -3025,13 +2987,16 @@ At each pixel, a random number of observations, uniformly distributed between <c
     <span class="n">w</span> <span class="o">=</span> <span class="n">save_dir</span> <span class="o">/</span> <span class="s2">&quot;weights&quot;</span>  <span class="c1"># weights dir</span>
     <span class="n">w</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># make dir</span>
     <span class="n">last</span><span class="p">,</span> <span class="n">best</span> <span class="o">=</span> <span class="n">w</span> <span class="o">/</span> <span class="s2">&quot;last.pt&quot;</span><span class="p">,</span> <span class="n">w</span> <span class="o">/</span> <span class="s2">&quot;best.pt&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nosave</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Saving weights to </span><span class="si">%s</span><span class="s2"> (best score) and </span><span class="si">%s</span><span class="s2"> (most recent)&quot;</span><span class="p">,</span> <span class="n">best</span><span class="p">,</span> <span class="n">last</span>
+        <span class="p">)</span>
 
     <span class="c1"># Hyperparameters</span>
-    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">colorstr</span><span class="p">(</span><span class="s2">&quot;config: &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
 
     <span class="c1"># Save run settings</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_dir</span> <span class="o">/</span> <span class="s2">&quot;opt.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span> <span class="n">f</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">data_dict</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Loggers</span>
@@ -3039,14 +3004,14 @@ At each pixel, a random number of observations, uniformly distributed between <c
     <span class="c1"># Config</span>
     <span class="n">cuda</span> <span class="o">=</span> <span class="n">device</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span>
     <span class="n">init_seeds</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">data_dict</span> <span class="o">=</span> <span class="n">data_dict</span> <span class="ow">or</span> <span class="n">check_dataset</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># check if None</span>
+    <span class="n">data_dict</span> <span class="o">=</span> <span class="n">data_dict</span> <span class="ow">or</span> <span class="n">check_dataset</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># check if None</span>
     <span class="n">train_path</span> <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">]</span>
 
     <span class="c1"># Dataset</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
-            <span class="n">filepath_or_buffer</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-            <span class="n">index_col</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)),</span>
+            <span class="n">filepath_or_buffer</span><span class="o">=</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">index_col</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)),</span>
             <span class="n">header</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">parse_dates</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
@@ -3054,53 +3019,78 @@ At each pixel, a random number of observations, uniformly distributed between <c
         <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">index</span>
-    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">dimensions</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
-    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">-</span> <span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">/</span> <span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">-</span> <span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="n">index</span> <span class="o">/</span> <span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">dimensions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">min_xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">max_xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">world</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">min_xs</span><span class="p">,</span> <span class="n">max_xs</span><span class="p">))</span>
     <span class="n">num_observation_categories</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">n_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="n">epochs</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">epochs</span>
+    <span class="k">if</span> <span class="n">streaming</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">streaming_batch</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Streaming inference selected, settings training epochs to len(data) = </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">n_data</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">n_data</span>
+    <span class="k">elif</span> <span class="n">streaming_batch</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Streaming batch inference selected, setting training epochs to streaming_batch_splits = </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_batch_splits</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_batch_splits</span>
 
     <span class="c1"># Kernel</span>
-    <span class="n">kernel_lengthscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kernel_lengthscale</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">kernel_variance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kernel_variance</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">kernel_lengthscale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_lengthscale</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">kernel_variance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_variance</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="n">kernel</span> <span class="o">=</span> <span class="n">KERNEL_DICT</span><span class="p">[</span><span class="n">kernel_type</span><span class="p">](</span>
-        <span class="n">input_dim</span><span class="o">=</span><span class="n">dimensions</span><span class="p">,</span> <span class="n">lengthscale</span><span class="o">=</span><span class="n">kernel_lengthscale</span><span class="p">,</span> <span class="n">variance</span><span class="o">=</span><span class="n">kernel_variance</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">KERNEL_DICT</span><span class="p">[</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">kernel_type</span><span class="p">](</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span>
+        <span class="n">lengthscale</span><span class="o">=</span><span class="n">kernel_lengthscale</span><span class="p">,</span>
+        <span class="n">variance</span><span class="o">=</span><span class="n">kernel_variance</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="c1"># Model</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">GDRF_MODEL_DICT</span><span class="p">[</span><span class="n">model_type</span><span class="p">](</span>
-        <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
-        <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span>
-        <span class="n">world</span><span class="o">=</span><span class="n">world</span><span class="p">,</span>
-        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
-        <span class="n">num_observation_categories</span><span class="o">=</span><span class="n">num_observation_categories</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">num_topic_categories</span><span class="o">=</span><span class="n">num_topics</span><span class="p">,</span>
-        <span class="n">dirichlet_param</span><span class="o">=</span><span class="n">dirichlet_param</span><span class="p">,</span>
-        <span class="n">n_points</span><span class="o">=</span><span class="n">num_inducing_points</span><span class="p">,</span>
-        <span class="n">fixed_inducing_points</span><span class="o">=</span><span class="n">fixed_inducing_points</span><span class="p">,</span>
-        <span class="n">inducing_init</span><span class="o">=</span><span class="n">inducing_initialization_method</span><span class="p">,</span>
-        <span class="n">maxjitter</span><span class="o">=</span><span class="n">max_jitter</span><span class="p">,</span>
-        <span class="n">jitter</span><span class="o">=</span><span class="n">jitter</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;xs&quot;</span><span class="p">:</span> <span class="n">xs</span><span class="p">,</span>
+        <span class="s2">&quot;ws&quot;</span><span class="p">:</span> <span class="n">ws</span><span class="p">,</span>
+        <span class="s2">&quot;world&quot;</span><span class="p">:</span> <span class="n">world</span><span class="p">,</span>
+        <span class="s2">&quot;kernel&quot;</span><span class="p">:</span> <span class="n">kernel</span><span class="p">,</span>
+        <span class="s2">&quot;num_observation_categories&quot;</span><span class="p">:</span> <span class="n">num_observation_categories</span><span class="p">,</span>
+        <span class="s2">&quot;device&quot;</span><span class="p">:</span> <span class="n">device</span><span class="p">,</span>
+        <span class="s2">&quot;num_topic_categories&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_topics</span><span class="p">,</span>
+        <span class="s2">&quot;dirichlet_param&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">dirichlet_param</span><span class="p">,</span>
+        <span class="s2">&quot;n_points&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_inducing_points</span><span class="p">,</span>
+        <span class="s2">&quot;fixed_inducing_points&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">fixed_inducing_points</span><span class="p">,</span>
+        <span class="s2">&quot;inducing_init&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">inducing_initialization_method</span><span class="p">,</span>
+        <span class="s2">&quot;maxjitter&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_jitter</span><span class="p">,</span>
+        <span class="s2">&quot;jitter&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">jitter</span><span class="p">,</span>
+        <span class="s2">&quot;randomize_wt_matrix&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">randomize_wt_matrix</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># if randomize_wt_matrix:</span>
+    <span class="c1">#     kwargs[&quot;randomize_metric&quot;] = lambda wt, gdrf: (</span>
+    <span class="c1">#         1.0 / ((ws * (gdrf.topic_probs(xs) @ wt).log()).sum() / -ws.sum()).exp()</span>
+    <span class="c1">#     )</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">GDRF_MODEL_DICT</span><span class="p">[</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">model_type</span><span class="p">](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># Optimizer</span>
 
-    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">OPTIMIZER_DICT</span><span class="p">[</span><span class="n">optimizer_type</span><span class="p">](</span><span class="n">lr</span><span class="o">=</span><span class="n">optimizer_lr</span><span class="p">)</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">OPTIMIZER_DICT</span><span class="p">[</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">optimizer_type</span><span class="p">](</span>
+        <span class="p">{</span><span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">optimizer_lr</span><span class="p">}</span>
+    <span class="p">)</span>
 
     <span class="c1"># Variational Objective</span>
-    <span class="n">objective_hyperparameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_particles&quot;</span><span class="p">:</span> <span class="n">objective_num_particles</span><span class="p">}</span>
-    <span class="k">if</span> <span class="n">objective_type</span> <span class="o">==</span> <span class="s2">&quot;renyielbo&quot;</span><span class="p">:</span>
-        <span class="n">objective_hyperparameters</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">objective_renyi_alpha</span>
-    <span class="n">objective</span> <span class="o">=</span> <span class="n">OBJECTIVE_DICT</span><span class="p">[</span><span class="n">objective_type</span><span class="p">](</span>
+    <span class="n">objective_hyperparameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_particles&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">objective_num_particles</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">objective_type</span> <span class="o">==</span> <span class="s2">&quot;renyielbo&quot;</span><span class="p">:</span>
+        <span class="n">objective_hyperparameters</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">objective_renyi_alpha</span>
+    <span class="n">objective</span> <span class="o">=</span> <span class="n">OBJECTIVE_DICT</span><span class="p">[</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">objective_type</span><span class="p">](</span>
         <span class="n">vectorize_particles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">objective_hyperparameters</span>
     <span class="p">)</span>
     <span class="n">start_epoch</span><span class="p">,</span> <span class="n">best_fitness</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
@@ -3120,7 +3110,7 @@ At each pixel, a random number of observations, uniformly distributed between <c
 
         <span class="c1"># Epochs</span>
         <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">ckpt</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">resume</span><span class="p">:</span>
             <span class="k">assert</span> <span class="p">(</span>
                 <span class="n">start_epoch</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">weights</span><span class="si">}</span><span class="s2"> training to </span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> epochs is finished, nothing to resume.&quot;</span>
@@ -3156,64 +3146,152 @@ At each pixel, a random number of observations, uniformly distributed between <c
         <span class="sa">f</span><span class="s2">&quot;Logging results to </span><span class="si">{</span><span class="n">colorstr</span><span class="p">(</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="sa">f</span><span class="s2">&quot;Starting training for </span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> epochs...&quot;</span>
     <span class="p">)</span>
-    <span class="k">with</span> <span class="n">logging_redirect_tqdm</span><span class="p">():</span>
-        <span class="n">pbar</span> <span class="o">=</span> <span class="n">trange</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="n">epochs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="p">(</span>
-            <span class="n">epoch</span>
-        <span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
-            <span class="n">pbar</span>
-        <span class="p">):</span>  <span class="c1"># epoch ------------------------------------------------------------------</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">logging_redirect_tqdm</span><span class="p">():</span>
+            <span class="n">pbar</span> <span class="o">=</span> <span class="n">trange</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="n">epochs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">pbar</span><span class="p">:</span>  <span class="c1"># epoch</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">subepoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_subepochs</span><span class="p">):</span>
+                        <span class="n">effective_epoch</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">epoch</span> <span class="o">*</span> <span class="n">n_data</span> <span class="o">//</span> <span class="n">epochs</span> <span class="k">if</span> <span class="n">streaming_batch</span> <span class="k">else</span> <span class="n">epoch</span>
+                        <span class="p">)</span>
+                        <span class="n">n_stream</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">min</span><span class="p">(</span><span class="n">effective_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_truncate</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_truncate</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                            <span class="k">else</span> <span class="n">effective_epoch</span> <span class="o">+</span> <span class="mi">1</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;uniform&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)]</span>
+                        <span class="k">elif</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;now&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)]</span>
+                            <span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+                        <span class="k">elif</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_exp</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_stream</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)</span>
+                            <span class="p">]</span>
+                        <span class="k">elif</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;uniform_now&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="n">streaming_weight</span> <span class="o">/</span> <span class="n">n_stream</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)]</span>
+                            <span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">streaming_weight</span>
+                        <span class="k">elif</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;exp_now&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_exp</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_stream</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)</span>
+                            <span class="p">]</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="n">streaming_weight</span> <span class="o">*</span> <span class="n">q</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">p</span><span class="p">]</span>
+                            <span class="n">p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_weight</span>
+                        <span class="k">elif</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span> <span class="o">==</span> <span class="s2">&quot;uniform_exp&quot;</span><span class="p">:</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_exp</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_stream</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_stream</span><span class="p">)</span>
+                            <span class="p">]</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">q</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">p</span>
+                            <span class="p">]</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">q</span> <span class="o">+</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_weight</span> <span class="o">/</span> <span class="p">(</span><span class="n">n_stream</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">p</span>
+                            <span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                <span class="s2">&quot;streaming_inference should be one of &#39;uniform&#39;, &#39;now&#39;, &#39;exp&#39;, &#39;uniform_now, &#39;exp_now&#39;, or &#39;uniform_exp&#39;; you passed </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                                <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_inference</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">p</span><span class="p">]</span>
+                        <span class="n">selection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                            <span class="n">n_stream</span><span class="p">,</span>
+                            <span class="n">size</span><span class="o">=</span><span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_size</span>
+                            <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_size</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_truncate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">selection</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_stream</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">selection</span><span class="p">]</span>
+                                <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">streaming_size</span> <span class="o">&gt;</span> <span class="mi">1</span>
+                                <span class="k">else</span> <span class="n">selection</span> <span class="o">+</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_stream</span>
+                            <span class="p">)</span>
+                        <span class="n">xs_stream</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="n">selection</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="n">ws_stream</span> <span class="o">=</span> <span class="n">ws</span><span class="p">[</span><span class="n">selection</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">streaming_size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">xs_stream</span> <span class="o">=</span> <span class="n">xs_stream</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">ws_stream</span> <span class="o">=</span> <span class="n">ws_stream</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">loss</span> <span class="o">=</span> <span class="n">svi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                            <span class="n">xs</span><span class="o">=</span><span class="n">xs_stream</span><span class="p">,</span>
+                            <span class="n">ws</span><span class="o">=</span><span class="n">ws_stream</span><span class="p">,</span>
+                            <span class="n">subsample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">loss</span> <span class="o">=</span> <span class="n">svi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span> <span class="n">subsample</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">perplexity</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">perplexity</span><span class="p">(</span>
+                    <span class="n">xs</span><span class="p">,</span>
+                    <span class="n">ws</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">svi</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">subsample</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-            <span class="n">perplexity</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">perplexity</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-
-            <span class="n">pbar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">pbar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">perplexity</span><span class="o">=</span><span class="n">perplexity</span><span class="p">)</span>
-            <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;on_train_epoch_end&quot;</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
-            <span class="n">log_vals</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">loss</span><span class="p">,</span>
-                <span class="n">perplexity</span><span class="p">,</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">kernel_lengthscale</span><span class="p">,</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">kernel_variance</span><span class="p">,</span>
-            <span class="p">]</span>
-            <span class="n">fi</span> <span class="o">=</span> <span class="o">-</span><span class="n">perplexity</span>
-            <span class="k">if</span> <span class="n">fi</span> <span class="o">&gt;</span> <span class="n">best_fitness</span><span class="p">:</span>
-                <span class="n">best_fitness</span> <span class="o">=</span> <span class="n">fi</span>
-            <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;on_fit_epoch_end&quot;</span><span class="p">,</span> <span class="n">log_vals</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">best_fitness</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
-            <span class="n">final_epoch</span> <span class="o">=</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">epochs</span><span class="p">)</span> <span class="ow">or</span> <span class="n">stopper</span><span class="o">.</span><span class="n">possible_stop</span>
-            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">nosave</span><span class="p">)</span> <span class="ow">or</span> <span class="n">final_epoch</span><span class="p">:</span>
-                <span class="n">ckpt</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
-                    <span class="s2">&quot;best_fitness&quot;</span><span class="p">:</span> <span class="n">best_fitness</span><span class="p">,</span>
-                    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">half</span><span class="p">(),</span>
-                    <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">get_state</span><span class="p">(),</span>
-                    <span class="s2">&quot;wandb_id&quot;</span><span class="p">:</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">wandb_run</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="p">}</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ckpt</span><span class="p">,</span> <span class="n">last</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">best_fitness</span> <span class="o">==</span> <span class="n">fi</span><span class="p">:</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ckpt</span><span class="p">,</span> <span class="n">best</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">ckpt</span>
-                <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-                    <span class="s2">&quot;on_model_save&quot;</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">final_epoch</span><span class="p">,</span> <span class="n">best_fitness</span><span class="p">,</span> <span class="n">fi</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span> <span class="n">perplexity</span><span class="o">=</span><span class="n">perplexity</span><span class="p">)</span>
+                <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;on_train_epoch_end&quot;</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
+                <span class="n">log_vals</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">loss</span><span class="p">,</span>
+                    <span class="n">perplexity</span><span class="p">,</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">kernel_lengthscale</span><span class="p">,</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">kernel_variance</span><span class="p">,</span>
+                <span class="p">]</span>
+                <span class="n">fi</span> <span class="o">=</span> <span class="o">-</span><span class="n">perplexity</span>
+                <span class="k">if</span> <span class="n">fi</span> <span class="o">&gt;</span> <span class="n">best_fitness</span><span class="p">:</span>
+                    <span class="n">best_fitness</span> <span class="o">=</span> <span class="n">fi</span>
+                <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;on_fit_epoch_end&quot;</span><span class="p">,</span> <span class="n">log_vals</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">best_fitness</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
+                <span class="n">final_epoch</span> <span class="o">=</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">epochs</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="n">stopper</span><span class="o">.</span><span class="n">possible_stop</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">streaming</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="n">stopper</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span> <span class="o">-</span> <span class="n">start_epoch</span><span class="p">,</span> <span class="n">fitness</span><span class="o">=</span><span class="n">fi</span><span class="p">):</span>
-                <span class="k">break</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nosave</span><span class="p">)</span> <span class="ow">or</span> <span class="n">final_epoch</span><span class="p">:</span>
+                    <span class="n">ckpt</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
+                        <span class="s2">&quot;best_fitness&quot;</span><span class="p">:</span> <span class="n">best_fitness</span><span class="p">,</span>
+                        <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">half</span><span class="p">(),</span>
+                        <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">get_state</span><span class="p">(),</span>
+                        <span class="s2">&quot;wandb_id&quot;</span><span class="p">:</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">wandb_run</span><span class="o">.</span><span class="n">id</span>
+                        <span class="k">if</span> <span class="n">loggers</span><span class="o">.</span><span class="n">wandb</span>
+                        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">}</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ckpt</span><span class="p">,</span> <span class="n">last</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">best_fitness</span> <span class="o">==</span> <span class="n">fi</span><span class="p">:</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">ckpt</span><span class="p">,</span> <span class="n">best</span><span class="p">)</span>
+                    <span class="k">del</span> <span class="n">ckpt</span>
+                    <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                        <span class="s2">&quot;on_model_save&quot;</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">final_epoch</span><span class="p">,</span> <span class="n">best_fitness</span><span class="p">,</span> <span class="n">fi</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">streaming</span> <span class="ow">and</span> <span class="n">stopper</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span> <span class="o">-</span> <span class="n">start_epoch</span><span class="p">,</span> <span class="n">fitness</span><span class="o">=</span><span class="n">fi</span><span class="p">):</span>
+                    <span class="k">break</span>
 
-            <span class="c1"># end epoch ---------------------------------------------------------------------------------------</span>
-    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">epoch</span> <span class="o">-</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> epochs completed in </span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3600</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> hours.&quot;</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">last</span><span class="p">,</span> <span class="n">best</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="n">strip_optimizer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># strip optimizers</span>
-    <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-        <span class="s2">&quot;on_train_end&quot;</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span> <span class="n">best</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">epoch</span>
-    <span class="p">)</span>
-    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results saved to </span><span class="si">{</span><span class="n">colorstr</span><span class="p">(</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># end epoch ---------------------------------------------------------------------------------------</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">epoch</span> <span class="o">-</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> epochs completed in </span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3600</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> hours.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;last&quot;</span><span class="p">,</span> <span class="n">last</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;best&quot;</span><span class="p">,</span> <span class="n">best</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">strip_optimizer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># strip optimizers</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to strip optimizer from </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">callbacks</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="s2">&quot;on_train_end&quot;</span><span class="p">,</span>
+            <span class="n">last</span><span class="p">,</span>
+            <span class="n">best</span><span class="p">,</span>
+            <span class="n">xs</span><span class="p">,</span>
+            <span class="n">ws</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
+            <span class="n">epoch</span><span class="p">,</span>
+            <span class="n">visualize_results</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results saved to </span><span class="si">{</span><span class="n">colorstr</span><span class="p">(</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
     <span class="k">return</span> <span class="kc">None</span>
 </code></pre></div>
         </details>
@@ -4436,7 +4514,7 @@ All columns are considered data, except if no <code>index</code> CSV is provided
 
 
 <h3 id="gdrf.visualize.stackplot_1d_cli" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">stackplot_1d_cli</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="highlight language-python"><span class="n">stackplot_1d_cli</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 
 <a href="#gdrf.visualize.stackplot_1d_cli" class="headerlink" title="Permanent link">&para;</a></h3>
@@ -4448,11 +4526,12 @@ Optionally, a single-column CSV file <code>index</code> may be provided.
 The first row of CSV files should be a header.
 All columns are considered data, except if no <code>index</code> CSV is provided the first column of <code>data</code> is the index.</p>
 <p>:param str data: A CSV file with probabilities. Header row is required, index column is optional
-:param str index: An optional CSV file with the index. Header row is required.</p>
+:param str index: An optional CSV file with the index. Header row is required.
+:param bool legend: Whether or not to display a legend</p>
 
         <details class="quote">
           <summary>Source code in <code>gdrf/visualize/__init__.py</code></summary>
-          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">stackplot_1d_cli</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">stackplot_1d_cli</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">legend</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a 1-D stackplot from the probabilities in the CSV file `data`.</span>
 <span class="sd">    Optionally, a single-column CSV file `index` may be provided.</span>
@@ -4461,8 +4540,9 @@ All columns are considered data, except if no <code>index</code> CSV is provided
 
 <span class="sd">    :param str data: A CSV file with probabilities. Header row is required, index column is optional</span>
 <span class="sd">    :param str index: An optional CSV file with the index. Header row is required.</span>
+<span class="sd">    :param bool legend: Whether or not to display a legend</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">display</span><span class="p">(</span><span class="n">stackplot_1d</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">stackplot_1d</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="n">legend</span><span class="p">))</span>
 </code></pre></div>
         </details>
     </div>
