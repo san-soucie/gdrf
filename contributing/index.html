@@ -740,12 +740,22 @@ Make sure all your changes are committed (including an entry in HISTORY.md).
 Then run:</p>
 <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1</span>
 <span class="normal">2</span>
-<span class="normal">3</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code>$ poetry patch # possible: major / minor / patch
-$ git push
-$ git push --tags
+<span class="normal">3</span>
+<span class="normal">4</span>
+<span class="normal">5</span>
+<span class="normal">6</span>
+<span class="normal">7</span>
+<span class="normal">8</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code>$ checkout release
+$ git pull origin master
+$ # Edit HISTORY.md
+$ poetry version patch # possible: major / minor / patch
+$ git commit -m &quot;preparing for release $VERSION&quot;
+$ tox # test the release
+$ git tag $VERSION
+$ git push --follow-tags
 </code></pre></div>
 </td></tr></table>
-<p>Travis will then deploy to PyPI if tests pass.</p>
+<p>Github CI will then deploy to PyPI if tests pass.</p>
 <!-- END INCLUDE -->
                 
               
