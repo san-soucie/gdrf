@@ -107,7 +107,7 @@ class NonlinearExpectationDivergence(Divergence):
             surrogate_loss_particle = self.loss_fn(
                 model_trace, guide_trace, args, kwargs
             )
-            loss_particle = surrogate_loss_particle.detach().item()
+            loss_particle = surrogate_loss_particle.detach()
 
             if is_identically_zero(loss_particle):
                 if tensor_holder is not None:
@@ -152,7 +152,7 @@ class NonlinearExpectationDivergence(Divergence):
                 surrogate_loss_particles.sum() / self.num_particles
             )
             surrogate_divergence.backward()
-        loss = -divergence
+        loss = -divergence.item()
         warn_if_nan(loss, "loss")
         return loss
 
@@ -198,9 +198,13 @@ def _f_divergence_loss_factory(f: Callable):
     return fn
 
 
+def _identity(x, *args):
+    return (x,) + args if args else x
+
+
 class KLDivergence(NonlinearExpectationDivergence):
     def __init__(self):
-        super().__init__(nonlinearity=lambda *args: args, loss_fn=_kl_divergence_loss)
+        super().__init__(nonlinearity=_identity, loss_fn=_kl_divergence_loss)
 
 
 class RenyiDivergence(NonlinearExpectationDivergence):
@@ -214,6 +218,4 @@ class RenyiDivergence(NonlinearExpectationDivergence):
 
 class FDivergence(NonlinearExpectationDivergence):
     def __init__(self, f: Callable):
-        super().__init__(
-            nonlinearity=lambda *args: args, loss_fn=_f_divergence_loss_factory(f)
-        )
+        super().__init__(nonlinearity=_identity, loss_fn=_f_divergence_loss_factory(f))

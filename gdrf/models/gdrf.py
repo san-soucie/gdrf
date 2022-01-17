@@ -28,6 +28,11 @@ class GDRF(AbstractGDRF):
         whiten: bool = False,
         jitter: float = 1e-8,
         maxjitter: int = 5,
+        randomize_wt_matrix: bool = False,
+        randomize_metric: Optional[
+            Callable[[torch.Tensor, AbstractGDRF], float]
+        ] = None,
+        randomize_iters: int = 100,
         **kwargs
     ):
         super().__init__(
@@ -49,12 +54,7 @@ class GDRF(AbstractGDRF):
             )
         self.xs = xs
         self.ws = ws
-        self._word_topic_matrix_map = nn.PyroParam(
-            self._dirichlet_param.to(self.device),
-            constraint=dist.constraints.stack(
-                [dist.constraints.simplex for _ in range(self._K)], dim=-2
-            ),
-        )
+
         self._jitter = jitter
         self._maxjitter = maxjitter
         self._whiten = whiten
@@ -66,6 +66,15 @@ class GDRF(AbstractGDRF):
         f_scale_tril = identity.repeat(self.latent_shape + (1, 1))
         self.f_scale_tril = nn.PyroParam(f_scale_tril, dist.constraints.lower_cholesky)
         self._sample_latent = True
+
+        self._word_topic_matrix_map = self.make_wt_matrix(
+            self._dirichlet_param,
+            self._K,
+            self.device,
+            randomize=randomize_wt_matrix,
+            randomize_metric=randomize_metric,
+            randomize_iters=randomize_iters,
+        )
 
     @scale_decorator("xs")
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):

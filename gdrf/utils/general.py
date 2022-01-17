@@ -465,26 +465,33 @@ def select_device(device=""):
             "CUDA_VISIBLE_DEVICES"
         ] = "-1"  # force torch.cuda.is_available() = False
     elif device:  # non-cpu device requested
-        os.environ["CUDA_VISIBLE_DEVICES"] = device  # set environment variable
         assert (
             torch.cuda.is_available()
         ), f"CUDA unavailable, invalid device {device} requested"  # check availability
 
     cuda = not cpu and torch.cuda.is_available()
+    # gpu_number = "0"
     if cuda:
-        devices = (
-            device.split(",") if device else "0"
-        )  # range(torch.cuda.device_count())  # i.e. 0,1,6,7
-        space = " " * (len(s) + 1)
-        for i, d in enumerate(devices):
-            p = torch.cuda.get_device_properties(i)
-            s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
+        # devices = (
+        #     device.split(",") if device else "0"
+        # )  # range(torch.cuda.device_count())  # i.e. 0,1,6,7
+        # space = " " * (len(s) + 1)
+        # for i, d in enumerate(devices):
+        #     p = torch.cuda.get_device_properties(i)
+        #     s += f"{'' if i == 0 else space}CUDA:{d} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"  # bytes to MB
+        try:
+            # gpu_number = os.environ["CUDA_VISIBLE_DEVICES"].split(",")[0]
+            # p = torch.cuda.get_device_properties(f"cuda:{gpu_number}")
+            # s += f"CUDA:{gpu_number} ({p.name}, {p.total_memory / 1024 ** 2}MB)\n"
+            pass
+        except KeyError:
+            pass
     else:
         s += "CPU\n"
 
-    LOGGER.info(
-        s.encode().decode("ascii", "ignore") if platform.system() == "Windows" else s
-    )  # emoji-safe
+    # LOGGER.info(
+    #     s.encode().decode("ascii", "ignore") if platform.system() == "Windows" else s
+    # )  # emoji-safe
     return torch.device("cuda:0" if cuda else "cpu")
 
 

@@ -50,6 +50,7 @@ pytest-cov = {optional = true, version = "^2.10.1"}
 tox  = {optional = true, version = "^3.20.1"}
 virtualenv  = {optional = true, version = "^20.2.2"}
 pip  = {optional = true, version = "^20.3.1"}
+poetry  = {optional = true, version = "^1.1.10"}
 mkdocs  = {optional = true, version = "^1.1.2"}
 mkdocs-include-markdown-plugin  = {optional = true, version = "^1.0.0"}
 mkdocs-material  = {optional = true, version = "^6.1.7"}

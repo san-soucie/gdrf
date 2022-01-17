@@ -2,8 +2,14 @@
 
 import fire
 
-from .train import train
-from .visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
+import gdrf
+
+try:
+    from .train_script import train
+    from .visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
+except ImportError:
+    from train_script import train
+    from visualize import matrixplot_cli, maxplot_2d_cli, stackplot_1d_cli
 
 
 def help():
