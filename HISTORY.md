@@ -13,3 +13,10 @@
 ## 0.1.2 (2021-10-05)
 
 * minor bugfix
+
+## 0.1.3 (2022-01-17)
+
+* minor bugfixes
+* Streaming truncation and sub-epoch options
+* Optional word-topic matrix randomized initialization
+* Reduced Wandb artifact logging
