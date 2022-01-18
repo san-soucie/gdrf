@@ -24,3 +24,7 @@
 ## 0.1.4 (2022-01-17)
 
 * Python 3.10 support
+
+## 0.1.5 (2022-01-17)
+
+* Pyro random seed initialized
