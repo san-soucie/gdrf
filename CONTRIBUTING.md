@@ -117,7 +117,7 @@ $ # Edit HISTORY.md
 $ poetry version patch # possible: major / minor / patch
 $ git commit -m "preparing for release $VERSION"
 $ tox # test the release
-$ git tag $VERSION
+$ git tag "v$VERSION" $VERSION
 $ git push --follow-tags
 ```
 
