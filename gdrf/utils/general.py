@@ -24,6 +24,7 @@ from subprocess import check_output
 import numpy as np
 import pandas as pd
 import pkg_resources as pkg
+import pyro
 import torch
 import torch.backends.cudnn as cudnn
 
@@ -78,6 +79,10 @@ def init_torch_seeds(seed=0):
         cudnn.benchmark, cudnn.deterministic = True, False
 
 
+def init_pyro_seed(seed=0):
+    pyro.set_rng_seed(seed)
+
+
 def methods(instance):
     # Get class/instance methods
     return [
@@ -98,6 +103,7 @@ def init_seeds(seed=0):
     random.seed(seed)
     np.random.seed(seed)
     init_torch_seeds(seed)
+    init_pyro_seed(seed)
 
 
 def get_latest_run(search_dir="."):
