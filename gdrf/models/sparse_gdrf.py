@@ -96,7 +96,7 @@ class SparseGDRF(AbstractGDRF):
         u_loc = torch.zeros((self.K, self.M), dtype=self._inducing_points.dtype).to(
             device
         )
-        self.u_loc = torch.nn.Parameter(u_loc)
+        self.u_loc = nn.PyroParam(u_loc)
         identity = dist.util.eye_like(self._inducing_points, self.M)
         u_scale_tril = identity.repeat((self.K, 1, 1)).float()
         self.u_scale_tril = nn.PyroParam(u_scale_tril, dist.constraints.lower_cholesky)
@@ -111,6 +111,9 @@ class SparseGDRF(AbstractGDRF):
             randomize=randomize_wt_matrix,
             randomize_metric=randomize_metric,
             randomize_iters=randomize_iters,
+        )
+        self._initialize_params(
+            metric=lambda: self.perplexity(kwargs["xs"], kwargs["ws"]), extrema=min
         )
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):

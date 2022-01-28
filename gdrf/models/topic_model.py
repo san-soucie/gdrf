@@ -5,7 +5,9 @@ from inspect import getfullargspec
 from typing import List, Tuple
 
 import pyro.contrib.gp
+import pyro.distributions
 import torch
+from torch.distributions.constraint_registry import transform_to
 
 
 class CategoricalModel(pyro.contrib.gp.Parameterized):
@@ -13,6 +15,42 @@ class CategoricalModel(pyro.contrib.gp.Parameterized):
         super().__init__()
         self._V = num_observation_categories
         self.device = device
+
+    def _initialize_params(
+        self, metric=None, extrema=min, n=100, param_init_distribution_dict=None
+    ):
+        if extrema not in {min, max}:
+            raise ValueError(
+                "extrema must be 'min' or 'max' (you provided '%s')", extrema
+            )
+        best_value = float("inf") if extrema is min else float("-inf")
+        best_params = dict()
+        for _ in range(n):
+            params = self._initialize_params_once(param_init_distribution_dict)
+            if metric is not None:
+                value = metric()
+                best_value = extrema(best_value, value)
+                if best_value == value:
+                    best_params = params
+        if metric is not None:
+            for param, val in best_params.items():
+                self.__setattr__(param, val)
+
+    def _initialize_params_once(self, param_init_distribution_dict=None):
+        if param_init_distribution_dict is None:
+            param_init_distribution_dict = dict()
+        ret = dict()
+        for param_name, (constraint, _) in self._pyro_params.items():
+            if param_name in param_init_distribution_dict:
+                dist = param_init_distribution_dict[param_name]
+            else:
+                param = self.__getattr__(param_name)
+                dist = pyro.distributions.Normal(param, torch.ones_like(param))
+            new_unconstrained_value = dist.sample()
+            new_constrained_value = transform_to(constraint)(new_unconstrained_value)
+            self.__setattr__(param_name, new_constrained_value)
+            ret[param_name] = new_constrained_value
+        return ret
 
     @property
     def V(self):
