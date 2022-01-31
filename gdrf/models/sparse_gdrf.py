@@ -93,7 +93,7 @@ class SparseGDRF(AbstractGDRF):
         self.latent_shape = torch.Size([self._K])
         self.M = self._inducing_points.size(-2)
         self.D = self._inducing_points.size(-1)
-        u_loc = torch.randn((self.K, self.M), dtype=self._inducing_points.dtype).to(
+        u_loc = torch.zeros((self.K, self.M), dtype=self._inducing_points.dtype).to(
             device
         )
         self.u_loc = nn.PyroParam(u_loc)
