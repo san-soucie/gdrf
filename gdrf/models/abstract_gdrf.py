@@ -78,7 +78,9 @@ class AbstractGDRF(SpatioTemporalTopicModel):
                     ret = possible
         return nn.PyroParam(
             ret,
-            constraint=dist.constraints.simplex,
+            constraint=dist.constraints.stack(
+                [dist.constraints.simplex for _ in range(K)], dim=-2
+            ),
         )
 
     @abstractmethod
