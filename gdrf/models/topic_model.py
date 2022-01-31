@@ -9,6 +9,8 @@ import pyro.distributions
 import torch
 from torch.distributions.constraint_registry import transform_to
 
+from .utils import get_pyro_params_constraints
+
 
 class CategoricalModel(pyro.contrib.gp.Parameterized):
     def __init__(self, num_observation_categories: int, device: str = "cpu"):
@@ -16,8 +18,22 @@ class CategoricalModel(pyro.contrib.gp.Parameterized):
         self._V = num_observation_categories
         self.device = device
 
+    def _check_param_constraints(self):
+        for full_param_name, (constraint, module) in self._named_members(
+            get_pyro_params_constraints, recurse=True
+        ):
+            param_name = full_param_name.split(".")[-1]
+            assert constraint.check(
+                module.__getattr__(param_name)
+            ).all(), f"{param_name} does not satisfy {constraint}"
+
     def _initialize_params(
-        self, metric=None, extrema=min, n=100, param_init_distribution_dict=None
+        self,
+        metric=None,
+        extrema=min,
+        n=100,
+        param_init_distribution_dict=None,
+        ignore=None,
     ):
         if extrema not in {min, max}:
             raise ValueError(
@@ -26,30 +42,39 @@ class CategoricalModel(pyro.contrib.gp.Parameterized):
         best_value = float("inf") if extrema is min else float("-inf")
         best_params = dict()
         for _ in range(n):
-            params = self._initialize_params_once(param_init_distribution_dict)
+            params = self._initialize_params_once(
+                param_init_distribution_dict, ignore=ignore
+            )
             if metric is not None:
                 value = metric()
                 best_value = extrema(best_value, value)
                 if best_value == value:
                     best_params = params
         if metric is not None:
-            for param, val in best_params.items():
-                self.__setattr__(param, val)
+            for full_param, (module, val) in best_params.items():
+                param = full_param.split(".")[-1]
+                module.__setattr__(param, val)
+        self._check_param_constraints()
 
-    def _initialize_params_once(self, param_init_distribution_dict=None):
+    def _initialize_params_once(self, param_init_distribution_dict=None, ignore=None):
         if param_init_distribution_dict is None:
             param_init_distribution_dict = dict()
         ret = dict()
-        for param_name, (constraint, _) in self._pyro_params.items():
+        for full_param_name, (constraint, module) in self._named_members(
+            get_pyro_params_constraints, recurse=True
+        ):
+            if ignore and full_param_name in ignore:
+                continue
+            param_name = full_param_name.split(".")[-1]
             if param_name in param_init_distribution_dict:
                 dist = param_init_distribution_dict[param_name]
             else:
-                param = self.__getattr__(param_name)
+                param = module.__getattr__(param_name)
                 dist = pyro.distributions.Normal(param, torch.ones_like(param))
             new_unconstrained_value = dist.sample()
             new_constrained_value = transform_to(constraint)(new_unconstrained_value)
-            self.__setattr__(param_name, new_constrained_value)
-            ret[param_name] = new_constrained_value
+            module.__setattr__(param_name, new_constrained_value)
+            ret[param_name] = (module, new_constrained_value)
         return ret
 
     @property

@@ -1,3 +1,5 @@
+import pyro
+import pyro.nn
 import torch
 
 
@@ -222,3 +224,16 @@ def generate_data_2d_uniform(V=100, W=150, H=32, seed=777, device="cpu"):
         for i, cat in enumerate(cats):
             words[idx, cat] = obs[i]
     return xs, words
+
+
+def get_pyro_params_constraints(module):
+    for name, (constraint, _) in module._pyro_params.items():
+        if name.endswith("_unconstrained"):
+            constrained_name = name[: -len("_unconstrained")]
+            if (
+                isinstance(module, pyro.nn.PyroModule)
+                and constrained_name in module._pyro_params
+            ):
+                yield constrained_name, (constraint, module)
+                continue
+        yield name, (constraint, module)

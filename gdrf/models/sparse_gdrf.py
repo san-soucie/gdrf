@@ -27,7 +27,7 @@ class SparseGDRF(AbstractGDRF):
         link_function: Callable = None,
         noise: Optional[float] = None,
         device: str = "cpu",
-        whiten: bool = False,
+        whiten: bool = True,
         jitter: float = 1e-8,
         maxjitter: int = 5,
         randomize_wt_matrix: bool = False,
@@ -93,7 +93,7 @@ class SparseGDRF(AbstractGDRF):
         self.latent_shape = torch.Size([self._K])
         self.M = self._inducing_points.size(-2)
         self.D = self._inducing_points.size(-1)
-        u_loc = torch.zeros((self.K, self.M), dtype=self._inducing_points.dtype).to(
+        u_loc = torch.randn((self.K, self.M), dtype=self._inducing_points.dtype).to(
             device
         )
         self.u_loc = nn.PyroParam(u_loc)
@@ -112,9 +112,13 @@ class SparseGDRF(AbstractGDRF):
             randomize_metric=randomize_metric,
             randomize_iters=randomize_iters,
         )
-        self._initialize_params(
-            metric=lambda: self.perplexity(kwargs["xs"], kwargs["ws"]), extrema=min
-        )
+        self.model(kwargs["xs"], kwargs["ws"])
+        # self._initialize_params(
+        #     metric=lambda: self.perplexity(kwargs["xs"], kwargs["ws"]),
+        #     extrema=min,
+        #     n=randomize_iters,
+        #     ignore=['u_scale_tril']  # badly behaved
+        # )
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):
         if Xnew.dim() != self._inducing_points.dim():
