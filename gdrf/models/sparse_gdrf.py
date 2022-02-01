@@ -166,11 +166,11 @@ class SparseGDRF(AbstractGDRF):
         )
         f_loc, _ = gp.util.conditional(
             xs,
-            self._inducing_points,
+            self._inducing_points.float(),
             posterior_kernel,
-            posterior_u_loc,
-            posterior_u_scale_tril,
-            Luu,
+            posterior_u_loc.float(),
+            posterior_u_scale_tril.float(),
+            Luu.float(),
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
