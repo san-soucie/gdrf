@@ -232,37 +232,34 @@ class SparseGDRF(AbstractGDRF):
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
-
-        kernel = self._kernel
-        Xu = self._inducing_points
-        u_loc = self.u_loc
-        u_scale_tril = self.u_scale_tril
-        Kuu = kernel(Xu).contiguous()
+        Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         f_loc, f_var = gp.util.conditional(
             xs,
-            Xu,
-            kernel,
-            u_loc,
-            u_scale_tril,
+            self._inducing_points,
+            self._kernel,
+            self.u_loc,
+            self.u_scale_tril,
             Luu,
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
         )
         f_loc = f_loc + self._mean_function(xs)
-        phi_map = self._word_topic_matrix_map
         with pyro.plate("topics", self.K, device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
-                    u_loc.dim() - 1
-                ),
+                dist.MultivariateNormal(
+                    self.u_loc, scale_tril=self.u_scale_tril
+                ).to_event(self.u_loc.dim() - 1),
             )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
-            pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
@@ -374,36 +371,34 @@ class SparseMultinomialGDRF(SparseGDRF):
         self._load_pyro_samples()
         xs = self.scale(xs)
 
-        kernel = self._kernel
-        Xu = self._inducing_points
-        u_loc = self.u_loc
-        u_scale_tril = self.u_scale_tril
-        Kuu = kernel(Xu).contiguous()
+        Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         f_loc, f_var = gp.util.conditional(
             xs,
-            Xu,
-            kernel,
-            u_loc,
-            u_scale_tril,
+            self._inducing_points,
+            self._kernel,
+            self.u_loc,
+            self.u_scale_tril,
             Luu,
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
         )
         f_loc = f_loc + self._mean_function(xs)
-        phi_map = self._word_topic_matrix_map
         with pyro.plate("topics", self.K, device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
-                    u_loc.dim() - 1
-                ),
+                dist.MultivariateNormal(
+                    self.u_loc, scale_tril=self.u_scale_tril
+                ).to_event(self.u_loc.dim() - 1),
             )
             pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
-            pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
 
 
 # class GridGDRF(SparseGDRF):
