@@ -196,10 +196,10 @@ class SparseGDRF(AbstractGDRF):
 
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
-        u_scale_tril = (
-            dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
-        )
-        zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
+        # u_scale_tril = (
+        #     dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
+        # )
+        # zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
 
         f_loc, f_var = gp.util.conditional(
             xs,
@@ -215,12 +215,12 @@ class SparseGDRF(AbstractGDRF):
 
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self._K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
+            #         zero_loc.dim() - 1
+            #     ),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.Normal(f_loc, f_var + self.noise).to_event(1),
@@ -255,12 +255,12 @@ class SparseGDRF(AbstractGDRF):
         )
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self.K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(
-                    self.u_loc, scale_tril=self.u_scale_tril
-                ).to_event(self.u_loc.dim() - 1),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(
+            #         self.u_loc, scale_tril=self.u_scale_tril
+            #     ).to_event(self.u_loc.dim() - 1),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
@@ -326,10 +326,10 @@ class SparseMultinomialGDRF(SparseGDRF):
         self.set_mode("model")
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
-        u_scale_tril = (
-            dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
-        )
-        zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
+        # u_scale_tril = (
+        #     dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
+        # )
+        # zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
 
         f_loc, f_var = gp.util.conditional(
             xs,
@@ -345,12 +345,12 @@ class SparseMultinomialGDRF(SparseGDRF):
 
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self._K, device=self.device) as idx:
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
+            #         zero_loc.dim() - 1
+            #     ),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.Normal(f_loc, f_var + self.noise).to_event(1),
@@ -394,12 +394,12 @@ class SparseMultinomialGDRF(SparseGDRF):
         )
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self.K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(
-                    self.u_loc, scale_tril=self.u_scale_tril
-                ).to_event(self.u_loc.dim() - 1),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(
+            #         self.u_loc, scale_tril=self.u_scale_tril
+            #     ).to_event(self.u_loc.dim() - 1),
+            # )
             pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
