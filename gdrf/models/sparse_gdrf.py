@@ -97,8 +97,16 @@ class SparseGDRF(AbstractGDRF):
             device
         )
         self.u_loc = nn.PyroParam(u_loc)
-        identity = dist.util.eye_like(self._inducing_points, self.M)
-        u_scale_tril = identity.repeat((self.K, 1, 1)).float()
+        u_scale_tril = (
+            jittercholesky(
+                self._kernel(self._inducing_points).contiguous(),
+                self.M,
+                self._jitter,
+                self._maxjitter,
+            )
+            .repeat((self.K, 1, 1))
+            .float()
+        )
         self.u_scale_tril = nn.PyroParam(u_scale_tril, dist.constraints.lower_cholesky)
         noise = torch.tensor(1.0) if noise is None else noise
         self.noise = nn.PyroParam(noise, constraint=dist.constraints.positive)
