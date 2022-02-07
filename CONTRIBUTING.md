@@ -99,9 +99,11 @@ Before you submit a pull request, check that it meets these guidelines:
    https://github.com/san-soucie/gdrf/actions
    and make sure that the tests pass for all supported Python versions.
 
-## Tips```
+## Tips
+```
     $ pytest tests.test_gdrf
-```To run a subset of tests.
+```
+To run a subset of tests.
 
 
 ## Deploying
