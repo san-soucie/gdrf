@@ -195,8 +195,10 @@ class GDRF(AbstractGDRF):
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
-
+        pyro.sample(
+            self._pyro_get_fullname("phi"),
+            dist.Delta(self._word_topic_matrix_map).to_event(1),
+        )
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
