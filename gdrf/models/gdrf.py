@@ -111,20 +111,20 @@ class GDRF(AbstractGDRF):
         return self._word_topic_matrix_map
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):
-        if self._xs_train is None:
+        if self.xs is None:
             raise RuntimeError("Must train model before evaluating")
-        if Xnew.dim() != self._xs_train.dim():
+        if Xnew.dim() != self.xs.dim():
             raise ValueError(
                 "Train data and test data should have the same "
                 "number of dimensions, but got {} and {}.".format(
-                    self._xs_train.dim(), Xnew.dim()
+                    self.xs.dim(), Xnew.dim()
                 )
             )
-        if self._xs_train.shape[1:] != Xnew.shape[1:]:
+        if self.xs.shape[1:] != Xnew.shape[1:]:
             raise ValueError(
                 "Train data and test data should have the same "
                 "shape of features, but got {} and {}.".format(
-                    self._xs_train.shape[1:], Xnew.shape[1:]
+                    self.xs.shape[1:], Xnew.shape[1:]
                 )
             )
 
@@ -279,7 +279,7 @@ class MultinomialGDRF(GDRF):
         f_res = self._link_function(f_swap)
         phi = pyro.sample(
             self._pyro_get_fullname("phi"),
-            dist.Dirichlet(self.beta).to_event(zero_loc.dim() - 1),
+            dist.Dirichlet(self._dirichlet_param).to_event(zero_loc.dim() - 1),
         )
         word_dist = f_res @ phi
         with pyro.plate("obs", device=self.device):
@@ -308,5 +308,6 @@ class MultinomialGDRF(GDRF):
         f_res = self._link_function(f_swap)
         dist.Categorical(f_res)
         pyro.sample(
-            self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(1)
+            self._pyro_get_fullname("phi"),
+            dist.Delta(self._word_topic_matrix_map).to_event(1),
         )
