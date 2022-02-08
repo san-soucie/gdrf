@@ -33,7 +33,8 @@ class GDRF(AbstractGDRF):
             Callable[[torch.Tensor, AbstractGDRF], float]
         ] = None,
         randomize_iters: int = 100,
-        **kwargs
+        noise: float = None,
+        **kwargs,
     ):
         super().__init__(
             num_observation_categories,
@@ -76,6 +77,8 @@ class GDRF(AbstractGDRF):
             randomize_iters=randomize_iters,
         )
 
+        noise = torch.tensor(1.0) if noise is None else noise
+        self._noise = nn.PyroParam(noise, constraint=dist.constraints.positive)
         # self._initialize_params(metric=lambda: self.perplexity(xs, ws), extrema=min)
 
     @scale_decorator("xs")
