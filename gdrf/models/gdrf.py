@@ -76,7 +76,7 @@ class GDRF(AbstractGDRF):
             randomize_iters=randomize_iters,
         )
 
-        self._initialize_params(metric=lambda: self.perplexity(xs, ws), extrema=min)
+        # self._initialize_params(metric=lambda: self.perplexity(xs, ws), extrema=min)
 
     @scale_decorator("xs")
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
