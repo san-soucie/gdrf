@@ -134,11 +134,11 @@ class GDRF(AbstractGDRF):
         self.set_mode("model")
         N = xs.size(-2)
         Kff = self._kernel(xs)
-        Kff.view(-1)[:: N + 1] += self._jitter + self.noise  # add noise to diagonal
+        Kff.view(-1)[:: N + 1] += self._jitter + self._noise  # add noise to diagonal
         Lff = jittercholesky(Kff, N, self._jitter, self._maxjitter)
 
         zero_loc = xs.new_zeros(self.f_loc.shape)
-        if self.whiten:
+        if self._whiten:
             identity = dist.util.eye_like(xs, N)
             pyro.sample(
                 self._pyro_get_fullname("mu"),
@@ -249,11 +249,11 @@ class MultinomialGDRF(GDRF):
 
         N = xs.size(-2)
         Kff = self._kernel(xs)
-        Kff.view(-1)[:: N + 1] += self._jitter + self.noise  # add noise to diagonal
+        Kff.view(-1)[:: N + 1] += self._jitter + self._noise  # add noise to diagonal
         Lff = jittercholesky(Kff, N, self._jitter, self._maxjitter)
 
         zero_loc = xs.new_zeros(self.f_loc.shape)
-        if self.whiten:
+        if self._whiten:
             identity = dist.util.eye_like(xs, N)
             pyro.sample(
                 self._pyro_get_fullname("mu"),
