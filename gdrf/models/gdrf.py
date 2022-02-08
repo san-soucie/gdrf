@@ -160,7 +160,7 @@ class GDRF(AbstractGDRF):
             )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(xs)
+        f_loc = f_loc + self._mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
@@ -275,7 +275,7 @@ class MultinomialGDRF(GDRF):
             )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(xs)
+        f_loc = f_loc + self._mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
