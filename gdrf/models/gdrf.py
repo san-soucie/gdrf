@@ -288,9 +288,8 @@ class MultinomialGDRF(GDRF):
         with pyro.plate("obs", device=self.device):
             w = pyro.sample(
                 self._pyro_get_fullname("w"),
-                dist.Multinomial(probs=word_dist),
+                dist.Multinomial(probs=word_dist, validate_args=False),
                 obs=ws,
-                validate_args=False,
             )
         return w
 
