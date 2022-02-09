@@ -24,9 +24,10 @@ def validate_dirichlet_param(
         raise ValueError("invalid b parameter- you passed %s", b)
 
 
-def jittercholesky(Kff, N, jitter, maxjitter):
+def jittercholesky(Kff, N, jitter, maxjitter, noise=0.0):
     njitter = 0
     Lff = None
+    Kff.view(-1)[:: N + 1] += noise
     while njitter < maxjitter:
         try:
             Kff.view(-1)[:: N + 1] += jitter * (10 ** njitter)
@@ -237,3 +238,20 @@ def get_pyro_params_constraints(module):
                 yield constrained_name, (constraint, module)
                 continue
         yield name, (constraint, module)
+
+
+# https://forum.pyro.ai/t/transpose-a-distribution-when-input-to-a-flow/2205/3
+class _Transpose(pyro.distributions.transforms.Transform):
+    def __init__(self, dims: tuple = (-1, -2)):
+        super().__init__(cache_size=1)  # cache forward computation so Planar works
+        self.dims = dims
+
+    def _call(self, x):
+        return x.transpose(*self.dims)  # only transpose the rightmost two dimensions
+
+    def _inverse(self, x):
+        return x.transpose(*self.dims)
+
+    @staticmethod
+    def log_abs_det_jacobian(*_):
+        return torch.tensor(0.0)
