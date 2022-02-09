@@ -33,7 +33,8 @@ class GDRF(AbstractGDRF):
             Callable[[torch.Tensor, AbstractGDRF], float]
         ] = None,
         randomize_iters: int = 100,
-        **kwargs
+        noise: Optional[float] = None,
+        **kwargs,
     ):
         super().__init__(
             num_observation_categories,
@@ -76,6 +77,10 @@ class GDRF(AbstractGDRF):
             randomize_iters=randomize_iters,
         )
 
+        noise = torch.tensor(1.0) if noise is None else noise
+        self._noise = nn.PyroParam(noise, constraint=dist.constraints.positive)
+        # self._initialize_params(metric=lambda: self.perplexity(xs, ws), extrema=min)
+
     @scale_decorator("xs")
     def artifacts(self, xs: torch.Tensor, ws: torch.Tensor, all: bool = False):
         return {
@@ -109,20 +114,20 @@ class GDRF(AbstractGDRF):
         return self._word_topic_matrix_map
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):
-        if self._xs_train is None:
+        if self.xs is None:
             raise RuntimeError("Must train model before evaluating")
-        if Xnew.dim() != self._xs_train.dim():
+        if Xnew.dim() != self.xs.dim():
             raise ValueError(
                 "Train data and test data should have the same "
                 "number of dimensions, but got {} and {}.".format(
-                    self._xs_train.dim(), Xnew.dim()
+                    self.xs.dim(), Xnew.dim()
                 )
             )
-        if self._xs_train.shape[1:] != Xnew.shape[1:]:
+        if self.xs.shape[1:] != Xnew.shape[1:]:
             raise ValueError(
                 "Train data and test data should have the same "
                 "shape of features, but got {} and {}.".format(
-                    self._xs_train.shape[1:], Xnew.shape[1:]
+                    self.xs.shape[1:], Xnew.shape[1:]
                 )
             )
 
@@ -132,44 +137,37 @@ class GDRF(AbstractGDRF):
         self.set_mode("model")
         N = xs.size(-2)
         Kff = self._kernel(xs)
-        Kff.view(-1)[:: N + 1] += self.jitter + self.noise  # add noise to diagonal
-        Lff = jittercholesky(Kff, N, self.jitter, self.maxjitter)
+        Lff = jittercholesky(Kff, N, self._jitter, self._maxjitter, self._noise)
 
         zero_loc = xs.new_zeros(self.f_loc.shape)
-        if self.whiten:
-            identity = dist.util.eye_like(xs, N)
-            pyro.sample(
-                self._pyro_get_fullname("mu"),
-                dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+        if self._whiten:
+
             f_scale_tril = Lff.matmul(self.f_scale_tril)
             f_loc = Lff.matmul(self.f_loc.unsqueeze(-1)).squeeze(-1)
         else:
-            pyro.sample(
-                self._pyro_get_fullname("mu"),
-                dist.MultivariateNormal(zero_loc, scale_tril=Lff).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(xs)
+        with pyro.plate("topics", self._K, device=self.device):
+
+            pyro.sample(
+                self._pyro_get_fullname("mu"),
+                dist.MultivariateNormal(
+                    zero_loc,
+                    scale_tril=dist.util.eye_like(xs, N) if self._whiten else Lff,
+                ).to_event(1),
+            )
+            phi = pyro.sample(
+                self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param)
+            )
+        f_loc = f_loc + self._mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        phi = pyro.sample(
-            self._pyro_get_fullname("phi"),
-            dist.Dirichlet(self._dirichlet_param).to_event(zero_loc.dim() - 1),
-        )
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
-            z = pyro.sample(
-                self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
-            )
+            z = pyro.sample(self._pyro_get_fullname("z"), topic_dist)
             w = pyro.sample(
                 self._pyro_get_fullname("w"),
                 dist.Categorical(probs=Vindex(phi)[..., z, :]),
@@ -182,19 +180,22 @@ class GDRF(AbstractGDRF):
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
-        pyro.sample(
-            self._pyro_get_fullname("mu"),
-            dist.MultivariateNormal(self.f_loc, scale_tril=self.f_scale_tril).to_event(
-                self.f_loc.dim() - 1
-            ),
-        )
+        with pyro.plate("topics", self._K, device=self.device):
+            pyro.sample(
+                self._pyro_get_fullname("mu"),
+                dist.MultivariateNormal(
+                    self.f_loc, scale_tril=self.f_scale_tril
+                ).to_event(self.f_loc.dim() - 1),
+            )
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
         f_var = self.f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(self.f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
         topic_dist = dist.Categorical(f_res)
-        pyro.sample("phi", dist.Dirichlet(self.beta).to_event(1))
-
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
                 self._pyro_get_fullname("z"), dist.Categorical(probs=topic_dist)
@@ -242,48 +243,41 @@ class MultinomialGDRF(GDRF):
     @scale_decorator("xs")
     def model(self, xs, ws, subsample=False):
         self.set_mode("model")
-
         N = xs.size(-2)
         Kff = self._kernel(xs)
-        Kff.view(-1)[:: N + 1] += self.jitter + self.noise  # add noise to diagonal
-        Lff = jittercholesky(Kff, N, self.jitter, self.maxjitter)
+        Lff = jittercholesky(Kff, N, self._jitter, self._maxjitter, self._noise)
 
         zero_loc = xs.new_zeros(self.f_loc.shape)
-        if self.whiten:
-            identity = dist.util.eye_like(xs, N)
-            pyro.sample(
-                self._pyro_get_fullname("mu"),
-                dist.MultivariateNormal(zero_loc, scale_tril=identity).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+        if self._whiten:
+
             f_scale_tril = Lff.matmul(self.f_scale_tril)
             f_loc = Lff.matmul(self.f_loc.unsqueeze(-1)).squeeze(-1)
         else:
-            pyro.sample(
-                self._pyro_get_fullname("mu"),
-                dist.MultivariateNormal(zero_loc, scale_tril=Lff).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
             f_scale_tril = self.f_scale_tril
             f_loc = self.f_loc
-        f_loc = f_loc + self.mean_function(xs)
+        with pyro.plate("topics", self._K, device=self.device):
+
+            pyro.sample(
+                self._pyro_get_fullname("mu"),
+                dist.MultivariateNormal(
+                    zero_loc,
+                    scale_tril=dist.util.eye_like(xs, N) if self._whiten else Lff,
+                ).to_event(1),
+            )
+            phi = pyro.sample(
+                self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param)
+            )
+        f_loc = f_loc + self._mean_function(xs)
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
         f_res = self._link_function(f_swap)
-        phi = pyro.sample(
-            self._pyro_get_fullname("phi"),
-            dist.Dirichlet(self.beta).to_event(zero_loc.dim() - 1),
-        )
-        word_dist = f_res @ phi
+        word_probs = f_res @ phi
         with pyro.plate("obs", device=self.device):
             w = pyro.sample(
                 self._pyro_get_fullname("w"),
-                dist.Multinomial(probs=word_dist),
+                dist.Multinomial(probs=word_probs, validate_args=False),
                 obs=ws,
-                validate_args=False,
             )
         return w
 
@@ -292,17 +286,16 @@ class MultinomialGDRF(GDRF):
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
-        pyro.sample(
-            self._pyro_get_fullname("mu"),
-            dist.MultivariateNormal(self.f_loc, scale_tril=self.f_scale_tril).to_event(
-                self.f_loc.dim() - 1
-            ),
-        )
+        with pyro.plate("topics", self._K, device=self.device):
+            pyro.sample(
+                self._pyro_get_fullname("mu"),
+                dist.MultivariateNormal(
+                    self.f_loc, scale_tril=self.f_scale_tril
+                ).to_event(self.f_loc.dim() - 1),
+            )
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
         f_var = self.f_scale_tril.pow(2).sum(dim=-1)
-        f = dist.Normal(self.f_loc, f_var.sqrt())()
-        f_swap = f.transpose(-2, -1)
-        f_res = self._link_function(f_swap)
-        dist.Categorical(f_res)
-        pyro.sample(
-            self._pyro_get_fullname("phi"), dist.Dirichlet(self.beta).to_event(1)
-        )
+        dist.Normal(self.f_loc, f_var.sqrt())()

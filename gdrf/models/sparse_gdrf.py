@@ -27,7 +27,7 @@ class SparseGDRF(AbstractGDRF):
         link_function: Callable = None,
         noise: Optional[float] = None,
         device: str = "cpu",
-        whiten: bool = False,
+        whiten: bool = True,
         jitter: float = 1e-8,
         maxjitter: int = 5,
         randomize_wt_matrix: bool = False,
@@ -96,9 +96,17 @@ class SparseGDRF(AbstractGDRF):
         u_loc = torch.zeros((self.K, self.M), dtype=self._inducing_points.dtype).to(
             device
         )
-        self.u_loc = torch.nn.Parameter(u_loc)
-        identity = dist.util.eye_like(self._inducing_points, self.M)
-        u_scale_tril = identity.repeat((self.K, 1, 1)).float()
+        self.u_loc = nn.PyroParam(u_loc)
+        u_scale_tril = (
+            jittercholesky(
+                self._kernel(self._inducing_points).contiguous(),
+                self.M,
+                self._jitter,
+                self._maxjitter,
+            )
+            .repeat((self.K, 1, 1))
+            .float()
+        )
         self.u_scale_tril = nn.PyroParam(u_scale_tril, dist.constraints.lower_cholesky)
         noise = torch.tensor(1.0) if noise is None else noise
         self.noise = nn.PyroParam(noise, constraint=dist.constraints.positive)
@@ -112,6 +120,13 @@ class SparseGDRF(AbstractGDRF):
             randomize_metric=randomize_metric,
             randomize_iters=randomize_iters,
         )
+        self.model(kwargs["xs"], kwargs["ws"])
+        # self._initialize_params(
+        #     metric=lambda: self.perplexity(kwargs["xs"], kwargs["ws"]),
+        #     extrema=min,
+        #     n=randomize_iters,
+        #     ignore=['u_scale_tril']  # badly behaved
+        # )
 
     def _check_Xnew_shape(self, Xnew: torch.Tensor):
         if Xnew.dim() != self._inducing_points.dim():
@@ -159,11 +174,11 @@ class SparseGDRF(AbstractGDRF):
         )
         f_loc, _ = gp.util.conditional(
             xs,
-            self._inducing_points,
+            self._inducing_points.float(),
             posterior_kernel,
-            posterior_u_loc,
-            posterior_u_scale_tril,
-            Luu,
+            posterior_u_loc.float(),
+            posterior_u_scale_tril.float(),
+            Luu.float(),
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
@@ -181,10 +196,10 @@ class SparseGDRF(AbstractGDRF):
 
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
-        u_scale_tril = (
-            dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
-        )
-        zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
+        # u_scale_tril = (
+        #     dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
+        # )
+        # zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
 
         f_loc, f_var = gp.util.conditional(
             xs,
@@ -200,12 +215,12 @@ class SparseGDRF(AbstractGDRF):
 
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self._K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
+            #         zero_loc.dim() - 1
+            #     ),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.Normal(f_loc, f_var + self.noise).to_event(1),
@@ -225,37 +240,34 @@ class SparseGDRF(AbstractGDRF):
     def guide(self, xs, ws, subsample=False):
         self.set_mode("guide")
         self._load_pyro_samples()
-
-        kernel = self._kernel
-        Xu = self._inducing_points
-        u_loc = self.u_loc
-        u_scale_tril = self.u_scale_tril
-        Kuu = kernel(Xu).contiguous()
+        Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         f_loc, f_var = gp.util.conditional(
             xs,
-            Xu,
-            kernel,
-            u_loc,
-            u_scale_tril,
+            self._inducing_points,
+            self._kernel,
+            self.u_loc,
+            self.u_scale_tril,
             Luu,
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
         )
         f_loc = f_loc + self._mean_function(xs)
-        phi_map = self._word_topic_matrix_map
         with pyro.plate("topics", self.K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
-                    u_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(
+            #         self.u_loc, scale_tril=self.u_scale_tril
+            #     ).to_event(self.u_loc.dim() - 1),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
-            pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
@@ -314,10 +326,10 @@ class SparseMultinomialGDRF(SparseGDRF):
         self.set_mode("model")
         Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
-        u_scale_tril = (
-            dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
-        )
-        zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
+        # u_scale_tril = (
+        #     dist.util.eye_like(self._inducing_points, self.M) if self._whiten else Luu
+        # )
+        # zero_loc = self._inducing_points.new_zeros(self.u_loc.shape)
 
         f_loc, f_var = gp.util.conditional(
             xs,
@@ -333,12 +345,12 @@ class SparseMultinomialGDRF(SparseGDRF):
 
         f_loc = f_loc + self._mean_function(xs)
         with pyro.plate("topics", self._K, device=self.device) as idx:
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
-                    zero_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(zero_loc, scale_tril=u_scale_tril).to_event(
+            #         zero_loc.dim() - 1
+            #     ),
+            # )
             mu = pyro.sample(
                 self._pyro_get_fullname("mu"),
                 dist.Normal(f_loc, f_var + self.noise).to_event(1),
@@ -367,36 +379,34 @@ class SparseMultinomialGDRF(SparseGDRF):
         self._load_pyro_samples()
         xs = self.scale(xs)
 
-        kernel = self._kernel
-        Xu = self._inducing_points
-        u_loc = self.u_loc
-        u_scale_tril = self.u_scale_tril
-        Kuu = kernel(Xu).contiguous()
+        Kuu = self._kernel(self._inducing_points).contiguous()
         Luu = jittercholesky(Kuu, self.M, self._jitter, self._maxjitter)
         f_loc, f_var = gp.util.conditional(
             xs,
-            Xu,
-            kernel,
-            u_loc,
-            u_scale_tril,
+            self._inducing_points,
+            self._kernel,
+            self.u_loc,
+            self.u_scale_tril,
             Luu,
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
         )
         f_loc = f_loc + self._mean_function(xs)
-        phi_map = self._word_topic_matrix_map
         with pyro.plate("topics", self.K, device=self.device):
-            pyro.sample(
-                self._pyro_get_fullname("u"),
-                dist.MultivariateNormal(u_loc, scale_tril=u_scale_tril).to_event(
-                    u_loc.dim() - 1
-                ),
-            )
+            # pyro.sample(
+            #     self._pyro_get_fullname("u"),
+            #     dist.MultivariateNormal(
+            #         self.u_loc, scale_tril=self.u_scale_tril
+            #     ).to_event(self.u_loc.dim() - 1),
+            # )
             pyro.sample(
                 self._pyro_get_fullname("mu"), dist.Normal(f_loc, f_var).to_event(1)
             )
-            pyro.sample(self._pyro_get_fullname("phi"), dist.Delta(phi_map).to_event(1))
+            pyro.sample(
+                self._pyro_get_fullname("phi"),
+                dist.Delta(self._word_topic_matrix_map).to_event(1),
+            )
 
 
 # class GridGDRF(SparseGDRF):
