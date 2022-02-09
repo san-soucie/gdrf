@@ -28,3 +28,7 @@
 ## 0.1.5 (2022-01-17)
 
 * Pyro random seed initialized
+
+## 0.1.6 (2022-02-09)
+
+* Default (non-sparse) GDRF implementation is now functional
