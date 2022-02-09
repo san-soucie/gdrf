@@ -97,12 +97,19 @@ class GDRF(AbstractGDRF):
     def log_topic_probs(self, xs):
         self._check_Xnew_shape(xs)
         self.set_mode("guide")
+        Lff = jittercholesky(
+            self._kernel(xs).contiguous(),
+            xs.size(0),
+            self._jitter,
+            self._maxjitter,
+        )
         loc, _ = gp.util.conditional(
             xs,
             self.xs,
             self._kernel,
             self.f_loc,
             self.f_scale_tril,
+            Lff=Lff,
             full_cov=False,
             whiten=self._whiten,
             jitter=self._jitter,
