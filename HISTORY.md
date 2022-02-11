@@ -32,3 +32,7 @@
 ## 0.1.6 (2022-02-09)
 
 * Default (non-sparse) GDRF implementation is now functional
+
+## 0.1.7 (2022-02-11)
+
+* Small improvements to default GDRF implementation
