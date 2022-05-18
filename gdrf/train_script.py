@@ -102,6 +102,7 @@ def train(  # noqa: C901
     model_type: str = "sparsemultinomialgdrf",
     num_topics: int = 1,
     dirichlet_param: float = 0.01,
+    topic_sparsity: float = 1.0,
     num_inducing_points: int = 25,
     fixed_inducing_points: bool = True,
     inducing_initialization_method: str = "random",
@@ -148,6 +149,7 @@ def train(  # noqa: C901
     :param str model_type: 'gdrf', 'multinomialgdrf', 'sparsegdrf', or 'sparsemultinomialgdrf'
     :param int num_topics: Number of GDRF topics
     :param float dirichlet_param: GDRF word-topic dirichlet parameter
+    :param float topic_sparsity: GDRF topic sparsity parameter
     :param int num_inducing_points: Number of inducing points for sparse GDRF.
     :param bool fixed_inducing_points: Whether or not sparse inducing point locations are learned
     :param str inducing_initialization_method: 'random' or 'grid'
@@ -298,6 +300,7 @@ def train(  # noqa: C901
         "device": device,
         "num_topic_categories": wandb.config.num_topics,
         "dirichlet_param": wandb.config.dirichlet_param,
+        "topic_sparsity": wandb.config.topic_sparsity,
         "n_points": wandb.config.num_inducing_points,
         "fixed_inducing_points": wandb.config.fixed_inducing_points,
         "inducing_init": wandb.config.inducing_initialization_method,
