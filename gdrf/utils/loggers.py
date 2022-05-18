@@ -54,7 +54,7 @@ def _artifacts(
         )
         if visualize_results:
             plots = {
-                "word_topic_matrix.png": matrix_plot(word_topic_matrix_df, log=True)
+                "word_topic_matrix.png": matrix_plot(word_topic_matrix_df, log=False)
             }
             if n_dims == 1:
                 plots["topic_prob.png"] = stackplot_1d(topic_prob_df, legend=True)
