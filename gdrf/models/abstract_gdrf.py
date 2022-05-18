@@ -30,6 +30,7 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
+        topic_sparsity: float,
         mean_function: Callable = None,
         link_function: Callable = None,
         device: str = "cpu",
@@ -53,6 +54,7 @@ class AbstractGDRF(SpatioTemporalTopicModel):
         self._dirichlet_param = validate_dirichlet_param(
             dirichlet_param, self._K, self._V, device=self.device
         )
+        self._topic_sparsity = torch.tensor(topic_sparsity)
 
     def make_wt_matrix(
         self,
