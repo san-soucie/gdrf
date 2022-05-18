@@ -20,6 +20,7 @@ class SparseGDRF(AbstractGDRF):
         world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
+        topic_sparsity: float,
         n_points: Union[int, List[int]],
         fixed_inducing_points: bool = False,
         inducing_init: str = "random",
@@ -43,6 +44,7 @@ class SparseGDRF(AbstractGDRF):
             world,
             kernel,
             dirichlet_param,
+            topic_sparsity,
             mean_function=mean_function,
             link_function=link_function,
             device=device,
@@ -183,7 +185,7 @@ class SparseGDRF(AbstractGDRF):
             whiten=self._whiten,
             jitter=self._jitter,
         )
-        return f_loc
+        return f_loc * self._topic_sparsity
 
     @property
     def word_topic_matrix(self) -> torch.Tensor:
@@ -230,7 +232,8 @@ class SparseGDRF(AbstractGDRF):
             )
         with pyro.plate("obs", ws.size(-2), device=self.device):
             z = pyro.sample(
-                self._pyro_get_fullname("z"), dist.Categorical(self._link_function(mu))
+                self._pyro_get_fullname("z"),
+                dist.Categorical(self._link_function(mu * self._topic_sparsity)),
             )
             w = pyro.sample("w", dist.Categorical(probs=Vindex(phi)[..., z, :]), obs=ws)
         return w
@@ -271,7 +274,8 @@ class SparseGDRF(AbstractGDRF):
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
-                self._pyro_get_fullname("z"), dist.Categorical(self._link_function(mu))
+                self._pyro_get_fullname("z"),
+                dist.Categorical(self._link_function(mu * self._topic_sparsity)),
             )
 
     @scale_decorator("Xnew")
@@ -316,7 +320,7 @@ class SparseGDRF(AbstractGDRF):
             whiten=self._whiten,
             jitter=self._jitter,
         )
-        return f_loc + self._mean_function(Xnew), f_cov
+        return (f_loc + self._mean_function(Xnew)) * self._topic_sparsity, f_cov
 
 
 class SparseMultinomialGDRF(SparseGDRF):
@@ -358,7 +362,7 @@ class SparseMultinomialGDRF(SparseGDRF):
             phi = pyro.sample(
                 self._pyro_get_fullname("phi"), dist.Dirichlet(self._dirichlet_param)
             )
-        topic_probs = self._link_function(mu).transpose(-2, -1)
+        topic_probs = self._link_function(mu * self._topic_sparsity).transpose(-2, -1)
         probs = torch.matmul(topic_probs, phi)
         with pyro.plate(
             "obs",

@@ -20,6 +20,7 @@ class GDRF(AbstractGDRF):
         world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
+        topic_sparsity: float,
         xs: torch.Tensor,
         ws: Optional[torch.Tensor] = None,
         mean_function: Callable = None,
@@ -42,6 +43,7 @@ class GDRF(AbstractGDRF):
             world,
             kernel,
             dirichlet_param,
+            topic_sparsity,
             mean_function=mean_function,
             link_function=link_function,
             device=device,
@@ -114,7 +116,7 @@ class GDRF(AbstractGDRF):
             whiten=self._whiten,
             jitter=self._jitter,
         )
-        return loc
+        return loc * self._topic_sparsity
 
     @property
     def word_topic_matrix(self) -> torch.Tensor:
@@ -170,7 +172,7 @@ class GDRF(AbstractGDRF):
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
-        f_res = self._link_function(f_swap)
+        f_res = self._link_function(f_swap * self._topic_sparsity)
         topic_dist = dist.Categorical(f_res)
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
@@ -201,7 +203,7 @@ class GDRF(AbstractGDRF):
         f_var = self.f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(self.f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
-        f_res = self._link_function(f_swap)
+        f_res = self._link_function(f_swap * self._topic_sparsity)
         topic_dist = dist.Categorical(f_res)
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(
@@ -242,7 +244,7 @@ class GDRF(AbstractGDRF):
             whiten=self._whiten,
             jitter=self._jitter,
         )
-        return loc + self._mean_function(Xnew), cov
+        return (loc + self._mean_function(Xnew)) * self._topic_sparsity, cov
 
 
 class MultinomialGDRF(GDRF):
@@ -278,7 +280,7 @@ class MultinomialGDRF(GDRF):
         f_var = f_scale_tril.pow(2).sum(dim=-1)
         f = dist.Normal(f_loc, f_var.sqrt())()
         f_swap = f.transpose(-2, -1)
-        f_res = self._link_function(f_swap)
+        f_res = self._link_function(f_swap * self._topic_sparsity)
         word_probs = f_res @ phi
         with pyro.plate("obs", device=self.device):
             w = pyro.sample(
