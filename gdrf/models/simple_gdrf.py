@@ -152,11 +152,10 @@ class SimpleGDRF(AbstractGDRF):
             covariance, N * self._K, self._jitter, self._maxjitter, self._noise
         )
         mean = torch.cat(tuple(self._mean_function(xs) for _ in range(self._K)), dim=-1)
-        p_z_given_x_dist = dist.TransformedDistribution(
+        log_p_z_given_x_dist = dist.TransformedDistribution(
             dist.MultivariateNormal(mean, scale_tril=scale_tril),
             transforms=[
                 dist.transforms.ReshapeTransform(mean.size(), torch.Size((N, self._K))),
-                dist.transforms.SoftmaxTransform(),
             ],
         )
 
@@ -164,8 +163,9 @@ class SimpleGDRF(AbstractGDRF):
             torch.Size((self._K,))
         )
 
-        p_z_given_x = pyro.sample(
-            self._pyro_get_fullname("p_z_given_x"), p_z_given_x_dist
+        p_z_given_x = torch.softmax(
+            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            -2,
         )
         p_w_given_z = pyro.sample(
             self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
@@ -188,18 +188,18 @@ class SimpleGDRF(AbstractGDRF):
 
         N = xs.size(-2)
         mean = torch.cat(tuple(self.f_loc for _ in range(self._K)), dim=-1)
-        p_z_given_x_dist = dist.TransformedDistribution(
+        log_p_z_given_x_dist = dist.TransformedDistribution(
             dist.MultivariateNormal(self.f_loc, scale_tril=self.f_scale_tril),
             transforms=[
                 dist.transforms.ReshapeTransform(mean.size(), torch.Size((N, self._K))),
-                dist.transforms.SoftmaxTransform(),
             ],
         )
 
-        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map)
+        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map).to_event(1)
 
-        p_z_given_x = pyro.sample(
-            self._pyro_get_fullname("p_z_given_x"), p_z_given_x_dist
+        p_z_given_x = torch.softmax(
+            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            -2,
         )
         pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
 
@@ -254,11 +254,10 @@ class SimpleMultinomialGDRF(SimpleGDRF):
             covariance, N * self._K, self._jitter, self._maxjitter, self._noise
         )
         mean = torch.cat(tuple(self._mean_function(xs) for _ in range(self._K)), dim=-1)
-        p_z_given_x_dist = dist.TransformedDistribution(
+        log_p_z_given_x_dist = dist.TransformedDistribution(
             dist.MultivariateNormal(mean, scale_tril=scale_tril),
             transforms=[
                 dist.transforms.ReshapeTransform(mean.size(), torch.Size((N, self._K))),
-                dist.transforms.SoftmaxTransform(),
             ],
         )
 
@@ -266,8 +265,9 @@ class SimpleMultinomialGDRF(SimpleGDRF):
             torch.Size((self._K,))
         )
 
-        p_z_given_x = pyro.sample(
-            self._pyro_get_fullname("p_z_given_x"), p_z_given_x_dist
+        p_z_given_x = torch.softmax(
+            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            -2,
         )
         p_w_given_z = pyro.sample(
             self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
@@ -286,17 +286,19 @@ class SimpleMultinomialGDRF(SimpleGDRF):
         self.set_mode("guide")
         self._load_pyro_samples()
         N = xs.size(-2)
-        p_z_given_x_dist = dist.TransformedDistribution(
+        log_p_z_given_x_dist = dist.TransformedDistribution(
             dist.MultivariateNormal(self.f_loc, scale_tril=self.f_scale_tril),
             transforms=[
                 dist.transforms.ReshapeTransform(
                     self.f_loc.size(), torch.Size((N, self._K))
                 ),
-                dist.transforms.SoftmaxTransform(),
             ],
         )
 
-        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map)
+        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map).to_event(1)
 
-        pyro.sample(self._pyro_get_fullname("p_z_given_x"), p_z_given_x_dist)
+        torch.softmax(
+            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            -2,
+        )
         pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)

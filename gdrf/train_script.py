@@ -331,7 +331,7 @@ def train(  # noqa: C901
     if wandb.config.objective_type == "renyielbo":
         objective_hyperparameters["alpha"] = wandb.config.objective_renyi_alpha
     objective = OBJECTIVE_DICT[wandb.config.objective_type](
-        vectorize_particles=True, **objective_hyperparameters
+        max_plate_nesting=1, vectorize_particles=True, **objective_hyperparameters
     )
     start_epoch, best_fitness = 0, float("-inf")
 
