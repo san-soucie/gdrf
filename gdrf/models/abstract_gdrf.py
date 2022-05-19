@@ -14,7 +14,7 @@ from .utils import validate_dirichlet_param
 LOGGER = logging.getLogger(__name__)
 
 
-def zero_mean(x: torch.Tensor, dims: Iterable[int] = (-2,)):
+def zero_mean(x: torch.Tensor, dims: Iterable[int] = (-1,)):
     return torch.zeros(x.shape[slice(*dims)])
 
 
