@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pyro
 import pyro.contrib.gp as gp
@@ -14,8 +14,8 @@ from .utils import validate_dirichlet_param
 LOGGER = logging.getLogger(__name__)
 
 
-def zero_mean(x):
-    return 0.0
+def zero_mean(x: torch.Tensor, dims: Iterable[int] = (-2,)):
+    return torch.zeros(x.shape[slice(*dims)])
 
 
 def softmax_link_function(x):
