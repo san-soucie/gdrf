@@ -22,7 +22,14 @@ import yaml
 from tqdm import trange
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF
+from gdrf.models import (
+    GDRF,
+    MultinomialGDRF,
+    SimpleGDRF,
+    SimpleMultinomialGDRF,
+    SparseGDRF,
+    SparseMultinomialGDRF,
+)
 from gdrf.utils.callbacks import Callbacks
 from gdrf.utils.general import (
     EarlyStopping,
@@ -60,6 +67,8 @@ GDRF_MODEL_DICT = {
     "multinomialgdrf": MultinomialGDRF,
     "sparsegdrf": SparseGDRF,
     "sparsemultinomialgdrf": SparseMultinomialGDRF,
+    "simplegdrf": SimpleGDRF,
+    "simplemultinomialgdrf": SimpleMultinomialGDRF,
 }
 OPTIMIZER_DICT = {
     "adagradrmsprop": pyro.optim.AdagradRMSProp,
