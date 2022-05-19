@@ -111,7 +111,6 @@ class SimpleGDRF(AbstractGDRF):
             self.f_scale_tril,
             Lff=Lff,
             full_cov=False,
-            whiten=self._whiten,
             jitter=self._jitter,
         )
         return loc
@@ -158,18 +157,20 @@ class SimpleGDRF(AbstractGDRF):
                 dist.transforms.ReshapeTransform(mean.size(), torch.Size((N, self._K))),
             ],
         )
-
         p_w_given_z_dist = dist.Dirichlet(self._dirichlet_param).expand(
             torch.Size((self._K,))
         )
 
         p_z_given_x = torch.softmax(
-            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            pyro.sample(
+                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
+            ),
             -2,
         )
-        p_w_given_z = pyro.sample(
-            self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
-        )
+        with pyro.plate("topics", self._K, device=self.device):
+            p_w_given_z = pyro.sample(
+                self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
+            )
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
             z = pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(p_z_given_x))
@@ -194,14 +195,16 @@ class SimpleGDRF(AbstractGDRF):
                 dist.transforms.ReshapeTransform(mean.size(), torch.Size((N, self._K))),
             ],
         )
-
-        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map).to_event(1)
+        p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map)
 
         p_z_given_x = torch.softmax(
-            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            pyro.sample(
+                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
+            ),
             -2,
         )
-        pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
+        with pyro.plate("topics", self._K, device=self.device):
+            pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
 
         with pyro.plate("obs", ws.size(-2), device=self.device):
             pyro.sample(self._pyro_get_fullname("z"), dist.Categorical(p_z_given_x))
@@ -266,12 +269,16 @@ class SimpleMultinomialGDRF(SimpleGDRF):
         )
 
         p_z_given_x = torch.softmax(
-            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
+            pyro.sample(
+                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
+            ),
             -2,
         )
-        p_w_given_z = pyro.sample(
-            self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
-        )
+
+        with pyro.plate("topics", self._K, device=self.device):
+            p_w_given_z = pyro.sample(
+                self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
+            )
         with pyro.plate("obs", N, device=self.device):
             w = pyro.sample(
                 self._pyro_get_fullname("w"),
@@ -294,11 +301,8 @@ class SimpleMultinomialGDRF(SimpleGDRF):
                 ),
             ],
         )
-
         p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map).to_event(1)
 
-        torch.softmax(
-            pyro.sample(self._pyro_get_fullname("p_z_given_x"), log_p_z_given_x_dist),
-            -2,
-        )
-        pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
+        pyro.sample(self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist),
+        with pyro.plate("topics", self._K, device=self.device):
+            pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
