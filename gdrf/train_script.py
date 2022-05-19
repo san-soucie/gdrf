@@ -22,7 +22,14 @@ import yaml
 from tqdm import trange
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from gdrf.models import GDRF, MultinomialGDRF, SparseGDRF, SparseMultinomialGDRF
+from gdrf.models import (
+    GDRF,
+    MultinomialGDRF,
+    SimpleGDRF,
+    SimpleMultinomialGDRF,
+    SparseGDRF,
+    SparseMultinomialGDRF,
+)
 from gdrf.utils.callbacks import Callbacks
 from gdrf.utils.general import (
     EarlyStopping,
@@ -60,6 +67,8 @@ GDRF_MODEL_DICT = {
     "multinomialgdrf": MultinomialGDRF,
     "sparsegdrf": SparseGDRF,
     "sparsemultinomialgdrf": SparseMultinomialGDRF,
+    "simplegdrf": SimpleGDRF,
+    "simplemultinomialgdrf": SimpleMultinomialGDRF,
 }
 OPTIMIZER_DICT = {
     "adagradrmsprop": pyro.optim.AdagradRMSProp,
@@ -322,7 +331,7 @@ def train(  # noqa: C901
     if wandb.config.objective_type == "renyielbo":
         objective_hyperparameters["alpha"] = wandb.config.objective_renyi_alpha
     objective = OBJECTIVE_DICT[wandb.config.objective_type](
-        vectorize_particles=True, **objective_hyperparameters
+        max_plate_nesting=1, vectorize_particles=True, **objective_hyperparameters
     )
     start_epoch, best_fitness = 0, float("-inf")
 
