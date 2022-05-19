@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def zero_mean(x: torch.Tensor, dims: Iterable[int] = (-1,)):
-    return torch.zeros(x.shape[slice(*dims)])
+    return torch.zeros(x.shape[slice(*dims)], dtype=torch.float, device=x.device)
 
 
 def softmax_link_function(x):
