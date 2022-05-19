@@ -20,6 +20,7 @@ class SimpleGDRF(AbstractGDRF):
         world: List[Tuple[float, float]],
         kernel: gp.kernels.Kernel,
         dirichlet_param: Union[float, torch.Tensor],
+        topic_sparsity: float,
         xs: torch.Tensor,
         ws: Optional[torch.Tensor] = None,
         mean_function: Callable = None,
@@ -41,6 +42,7 @@ class SimpleGDRF(AbstractGDRF):
             world,
             kernel,
             dirichlet_param,
+            topic_sparsity,
             mean_function=mean_function,
             link_function=link_function,
             device=device,
@@ -113,7 +115,7 @@ class SimpleGDRF(AbstractGDRF):
             full_cov=False,
             jitter=self._jitter,
         )
-        return loc
+        return loc * self._topic_sparsity
 
     @property
     def word_topic_matrix(self) -> torch.Tensor:
@@ -160,13 +162,10 @@ class SimpleGDRF(AbstractGDRF):
         p_w_given_z_dist = dist.Dirichlet(self._dirichlet_param).expand(
             torch.Size((self._K,))
         )
-
-        p_z_given_x = torch.softmax(
-            pyro.sample(
-                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
-            ),
-            -2,
+        log_p_z_given_x = self._topic_sparsity * pyro.sample(
+            self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
         )
+        p_z_given_x = torch.softmax(log_p_z_given_x, -2)
         with pyro.plate("topics", self._K, device=self.device):
             p_w_given_z = pyro.sample(
                 self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist
@@ -196,13 +195,10 @@ class SimpleGDRF(AbstractGDRF):
             ],
         )
         p_w_given_z_dist = dist.Delta(self._word_topic_matrix_map)
-
-        p_z_given_x = torch.softmax(
-            pyro.sample(
-                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
-            ),
-            -2,
+        log_p_z_given_x = self._topic_sparsity * pyro.sample(
+            self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
         )
+        p_z_given_x = torch.softmax(log_p_z_given_x, -2)
         with pyro.plate("topics", self._K, device=self.device):
             pyro.sample(self._pyro_get_fullname("p_w_given_z"), p_w_given_z_dist)
 
@@ -240,10 +236,9 @@ class SimpleGDRF(AbstractGDRF):
             self.f_loc,
             self.f_scale_tril,
             full_cov=full_cov,
-            whiten=self._whiten,
             jitter=self._jitter,
         )
-        return loc + self._mean_function(Xnew), cov
+        return (loc + self._mean_function(Xnew)) * self._topic_sparsity, cov
 
 
 class SimpleMultinomialGDRF(SimpleGDRF):
@@ -267,11 +262,11 @@ class SimpleMultinomialGDRF(SimpleGDRF):
         p_w_given_z_dist = dist.Dirichlet(self._dirichlet_param).expand(
             torch.Size((self._K,))
         )
-
+        log_p_z_given_x = self._topic_sparsity * pyro.sample(
+            self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
+        )
         p_z_given_x = torch.softmax(
-            pyro.sample(
-                self._pyro_get_fullname("log_p_z_given_x"), log_p_z_given_x_dist
-            ),
+            log_p_z_given_x,
             -2,
         )
 
