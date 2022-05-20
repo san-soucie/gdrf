@@ -53,17 +53,18 @@ def _artifacts(
             columns=obs_cats,
         )
         if visualize_results:
-            plots = {
-                "word_topic_matrix.png": matrix_plot(word_topic_matrix_df, log=False)
-            }
+            # plots = {
+            #     "word_topic_matrix.png": matrix_plot(word_topic_matrix_df, log=False)
+            # }
+            plots = dict()
             if n_dims == 1:
                 plots["topic_prob.png"] = stackplot_1d(topic_prob_df, legend=True)
                 plots["word_prob.png"] = stackplot_1d(word_prob_df)
-                plots["observations.png"] = stackplot_1d(obs_df)
+                # plots["observations.png"] = stackplot_1d(obs_df)
             elif n_dims == 2:
                 plots["topic_prob.png"] = maxplot_2d(topic_prob_df)
                 plots["word_prob.png"] = maxplot_2d(word_prob_df)
-                plots["observations.png"] = maxplot_2d(obs_df)
+                # plots["observations.png"] = maxplot_2d(obs_df)
             for plot_name, plot in plots.items():
                 hv.save(plot, save_dir / plot_name)
                 files[f"Results/{plot_name}"] = wandb.Image(
